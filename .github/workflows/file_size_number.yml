@@ -1,26 +1,22 @@
 name: File size number
 
 # Replaces the Jenkins "FileSizeNumber" job (formerly
-# jenkins/FileSizeNumber in C2SM/zephyr). Runs
-# create_json/file_size_number.py for every dataset in C2SM/zephyr's
-# create_json/datasets.yaml and writes the resulting meta_*.json to
-# /net/co2/c2sm-services/zephyr/file_index, served at
+# jenkins/FileSizeNumber in C2SM/zephyr). Runs src/file_size_number.py for
+# every dataset in src/datasets.yaml and writes the resulting meta_*.json
+# to /net/co2/c2sm-services/zephyr/file_index, served at
 # https://data.iac.ethz.ch/zephyr/file_index/. The frontend reads these
 # JSONs to show dataset sizes and file counts.
 #
 # GitHub-hosted runners can't reach iacdipl-7.ethz.ch directly (ETH's
 # firewall drops non-ETH-network SSH), so the workflow proxies through
 # fog.ethz.ch, uploads src/ over rsync, and runs
-# src/run_file_size_number.sh on iacdipl-7 - same pattern as
+# src/run_file_size_number.sh on iacdipl-7 - same ssh pattern as
 # C2SM/zephyr-request's process_request.yml, reusing the same iacdipl-7
 # account (l_c2sm) that the Jenkins "atmos"-labeled agent ran as.
 #
 # Required repository secrets (Settings -> Secrets and variables -> Actions):
 #   FOG_SSH_KEY      - private key for ti16102 on fog.ethz.ch
 #   IACDIPL7_SSH_KEY - private key for l_c2sm on iacdipl-7.ethz.ch
-#
-# Optional repository variable:
-#   ZEPHYR_VERSION - git ref of C2SM/zephyr to check out (defaults to 'main')
 
 on:
   schedule:
@@ -87,7 +83,6 @@ jobs:
       - name: Run file size number pipeline on iacdipl-7
         run: |
           ssh iacdipl7 bash -s << REMOTE
-          export ZEPHYR_VERSION='${{ vars.ZEPHYR_VERSION || 'main' }}'
           cd '${{ steps.workdir.outputs.path }}'
           bash run_file_size_number.sh
           REMOTE

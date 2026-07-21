@@ -2,9 +2,9 @@
 set -uo pipefail
 
 # Runs the pipeline that used to be the Jenkins "FileIndex" job. Invoked
-# over ssh from .github/workflows/file_index.yml. Runs
-# create_json/file_tree.py for every dataset in create_json/datasets.yaml;
-# each run writes its own file_tree_<dataset>*.json and copies it to
+# over ssh from .github/workflows/file_index.yml. Runs file_tree.py for
+# every dataset in datasets.yaml; each run writes its own
+# file_tree_<dataset>*.json and copies it to
 # /net/co2/c2sm-services/zephyr/file_index (see FILE_INDEX_DIR in
 # file_tree.py), served at https://data.iac.ethz.ch/zephyr/file_index/.
 #
@@ -14,9 +14,9 @@ set -uo pipefail
 
 source "$(dirname "$0")/run_pipeline.sh"
 
-clone_and_setup || exit 1
+setup_venv || exit 1
 
-cd zephyr/create_json
+python get_datasets.py datasets.yaml
 
 failures=0
 while IFS= read -r dataset; do
