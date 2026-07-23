@@ -393,7 +393,7 @@ era5_cds:
     - g025
     - zg500
 
-era5-land:
+era5-land_cds:
   directory_paths:
     - /net/atmos/data/era5-land_cds/processed/v1
   labels:
