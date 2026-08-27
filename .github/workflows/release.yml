@@ -1,0 +1,48 @@
+name: Release
+
+# Tags here are cut by hand. This turns one into a GitHub Release and tells
+# zephyr to rebuild its docs, so the version table in its ecosystem.md
+# reflects the new release instead of the previous one.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # workflow_dispatch can be pointed at a branch, where github.ref_name is
+    # a branch name and would otherwise produce a release called "main".
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Skipped if the release was already written by hand, so cutting one
+      # in the UI first and then pushing the tag still works.
+      - name: Create the GitHub Release if it does not exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ github.ref_name }}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists, nothing to do."
+          else
+            gh release create "$tag" --generate-notes
+          fi
+
+      # zephyr's ecosystem.md lists this repo's latest release, and its
+      # docs.yml only rebuilds on pushes to its own repo, so the table would
+      # otherwise show the previous version until an unrelated docs change
+      # lands there. Needs a PAT: GITHUB_TOKEN cannot reach another repo.
+      - name: Trigger zephyr docs rebuild
+        env:
+          GH_TOKEN: ${{ secrets.ZEPHYR_DOCS_DISPATCH_TOKEN }}
+        run: gh api repos/C2SM/zephyr/dispatches -f event_type=ecosystem-release
