@@ -5,7 +5,7 @@ cerra:
     - variable
     - temporal resolution
     - grid
-  pattern: 
+  pattern:
     file: "*.nc"
     date: "%Y"
     prefix: ''
@@ -21,7 +21,7 @@ cerra-land:
     - variable
     - temporal resolution
     - grid
-  pattern: 
+  pattern:
     file: "*.nc"
     date: "%Y"
     prefix: ''
@@ -43,7 +43,7 @@ cmip5:
     - variable
     - GCM
     - ensemble_member
-  pattern: 
+  pattern:
     file: "*.nc"
   blacklist:
     - work
@@ -67,7 +67,7 @@ cmip6:
     - GCM
     - ensemble_member
     - grid
-  pattern: 
+  pattern:
     file: "*.nc"
   blacklist:
     - work
@@ -96,7 +96,7 @@ cmip6_historical:
     - GCM
     - ensemble_member
     - grid
-  pattern: 
+  pattern:
     file: "*.nc"
   blacklist:
     - work
@@ -125,7 +125,7 @@ cmip6_ssp119:
     - GCM
     - ensemble_member
     - grid
-  pattern: 
+  pattern:
     file: "*.nc"
   blacklist:
     - work
@@ -154,7 +154,7 @@ cmip6_ssp126:
     - GCM
     - ensemble_member
     - grid
-  pattern: 
+  pattern:
     file: "*.nc"
   blacklist:
     - work
@@ -183,7 +183,7 @@ cmip6_ssp245:
     - GCM
     - ensemble_member
     - grid
-  pattern: 
+  pattern:
     file: "*.nc"
   blacklist:
     - work
@@ -212,7 +212,7 @@ cmip6_ssp370:
     - GCM
     - ensemble_member
     - grid
-  pattern: 
+  pattern:
     file: "*.nc"
   blacklist:
     - work
@@ -241,7 +241,7 @@ cmip6_ssp434:
     - GCM
     - ensemble_member
     - grid
-  pattern: 
+  pattern:
     file: "*.nc"
   blacklist:
     - work
@@ -270,7 +270,7 @@ cmip6_ssp460:
     - GCM
     - ensemble_member
     - grid
-  pattern: 
+  pattern:
     file: "*.nc"
   blacklist:
     - work
@@ -299,7 +299,7 @@ cmip6_ssp585:
     - GCM
     - ensemble_member
     - grid
-  pattern: 
+  pattern:
     file: "*.nc"
   blacklist:
     - work
@@ -328,7 +328,7 @@ cmip6-ng:
     - scenario
     - ensemble_member
     - grid
-  pattern: 
+  pattern:
     file: "*.nc"
   blacklist:
     - work
@@ -348,7 +348,7 @@ cordex:
     - GCM
     - RCM
     - ensemble_member
-  pattern: 
+  pattern:
     file: "*.nc"
   blacklist:
     - work
@@ -359,7 +359,7 @@ cordex-reklies:
   directory_paths:
     - /net/atmos/data/cordex-reklies/EUR-11/historical
     - /net/atmos/data/cordex-reklies/EUR-11/rcp26
-    - /net/atmos/data/cordex-reklies/EUR-11/rcp85    
+    - /net/atmos/data/cordex-reklies/EUR-11/rcp85
   labels:
     - scenario
     - temporal_resolution
@@ -368,11 +368,29 @@ cordex-reklies:
     - GCM
     - RCM
     - ensemble_member
-  pattern: 
+  pattern:
     file: "*.nc"
   blacklist:
     - work
   historical_before: 2015
+  map_root: True
+
+
+fpsconv:
+  directory_paths:
+    - /net/atmos/data/CORDEX-FPSCONV/
+  labels:
+    - domain
+    - scenario
+    - temporal_resolution
+    - variable
+    - GCM
+    - RCM
+  pattern:
+    file: "*.nc"
+  blacklist:
+    - processed_CPMs
+    - processed_RCMs
   map_root: True
 
 era5_cds:
@@ -382,7 +400,7 @@ era5_cds:
     - variable
     - temporal resolution
     - grid
-  pattern: 
+  pattern:
     file: "*/*.nc"
     date: "%Y%m"
     prefix: '{YYYY}/'
@@ -400,7 +418,7 @@ era5-land_cds:
     - variable
     - temporal resolution
     - grid
-  pattern: 
+  pattern:
     file: "*.nc"
     date: "%Y"
     prefix: ''
