@@ -324,10 +324,10 @@ cmip6-ng:
   labels:
     - variable
     - temporal_resolution
+    - grid
     - GCM
     - scenario
     - ensemble_member
-    - grid
   pattern:
     file: "*.nc"
   blacklist:
