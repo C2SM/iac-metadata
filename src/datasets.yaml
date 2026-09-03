@@ -328,11 +328,10 @@ cmip6-ng:
     - scenario
     - ensemble_member
     - grid
-  pattern: 
+  pattern:
     file: "*.nc"
   blacklist:
     - work
-  historical_before: 2015
 
 cordex:
   directory_paths:

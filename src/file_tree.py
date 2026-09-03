@@ -235,6 +235,39 @@ def check_completeness(file_list, dataset, path):
         return result
 
 
+def build_flat_leaf_tree(file_list, labels, label_index):
+    """
+    Builds a nested dictionary from a flat list of files whose names encode
+    the remaining labels as underscore-separated tokens, one token per
+    label, in the same order as `labels` (e.g. cmip6-ng, where GCM,
+    scenario, ensemble_member and grid all live in the filename rather than
+    as further subdirectories).
+
+    Args:
+        file_list (list): File names (no directory component).
+        labels (list): The dataset's full labels list.
+        label_index (int): Index of the first label still to be resolved;
+            labels before this index are already represented by the
+            directory path and are skipped when splitting each filename.
+
+    Returns:
+        dict: Nested dictionary representing the remaining labels.
+    """
+    tree = {}
+    for filename in file_list:
+        stem = filename.rsplit('.', 1)[0]
+        tokens = stem.split('_')
+        if len(tokens) != len(labels):
+            logging.warning(f"Skipping file with unexpected name shape: {filename}")
+            print(f"WARNING: Skipping file with unexpected name shape: {filename}")
+            continue
+        node = tree
+        for token in tokens[label_index:-1]:
+            node = node.setdefault(token, {})
+        node.setdefault(tokens[-1], {})
+    return tree
+
+
 def build_file_tree(directory, dataset, label_index, tree=None):
     """
     Recursively builds a nested dictionary representing the file tree starting from `directory`.
@@ -249,10 +282,12 @@ def build_file_tree(directory, dataset, label_index, tree=None):
     if tree is None:
         tree = {}
 
-    # Check if it's a CORDEX, CMIP5, or CMIP6 dataset which have one additional label 'scenario'
-    is_dataset_with_scenario_label = any(
-        special_dataset in dataset.get('directory_paths', [''])[0].lower()
-        for special_dataset in ['cordex', 'cmip5', 'cmip6'])
+    # CORDEX, CMIP5 and CMIP6 fold the scenario into directory_paths itself
+    # (map_root=True, labels[0]='scenario'), so the first real subdirectory
+    # already represents labels[1], not labels[0].
+    is_dataset_with_scenario_label = (dataset.get('map_root', False) and
+                                      dataset.get('labels', [''])[0].lower()
+                                      == 'scenario')
 
     # Increment the label_index + 1
     if is_dataset_with_scenario_label and label_index == 0:
@@ -283,7 +318,27 @@ def build_file_tree(directory, dataset, label_index, tree=None):
             logging.warning(f"Skipping empty directory '{path}'")
             print(f"Skipping empty directory '{path}'")
     else:
-        for item in sorted(os.listdir(directory)):
+        items = sorted(os.listdir(directory))
+
+        # Some datasets (e.g. cmip6-ng) stop nesting subdirectories before
+        # the last label: the remaining labels are encoded in the file
+        # names instead. Detect that by checking whether this directory
+        # holds files rather than further subdirectories.
+        if items and all(
+                not os.path.isdir(os.path.join(directory, item))
+                for item in items):
+            file_list = sorted(
+                os.path.basename(f) for f in glob.glob(
+                    f"{directory}/{dataset['pattern']['file']}"))
+            if file_list:
+                tree = build_flat_leaf_tree(file_list, dataset['labels'],
+                                           label_index)
+            else:
+                logging.warning(f"Skipping empty directory '{directory}'")
+                print(f"Skipping empty directory '{directory}'")
+            return tree
+
+        for item in items:
             path = os.path.join(directory, item)
             # Normalize the path and blacklist items to lowercase for case-insensitive comparison
             if any(
