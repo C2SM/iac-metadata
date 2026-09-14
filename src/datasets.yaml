@@ -376,18 +376,19 @@ cordex-reklies:
   map_root: True
 
 
-fpsconv:
+CORDEX-FPSCONV:
   directory_paths:
     - /net/atmos/data/CORDEX-FPSCONV/
   labels:
     - domain
-    - scenario
     - temporal_resolution
     - variable
+    - scenario
     - GCM
+    - ensemble_member
     - RCM
   pattern:
-    file: "*.nc"
+    file: "{variable}_{domain}_{GCM}_{scenario}_{ensemble_member}_{RCM}_*_{temporal_resolution}_*.nc"
   blacklist:
     - processed_CPMs
     - processed_RCMs
