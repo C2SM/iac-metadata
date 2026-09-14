@@ -324,6 +324,7 @@ cmip6-ng:
   labels:
     - variable
     - temporal_resolution
+    - grid
     - GCM
     - scenario
     - ensemble_member
@@ -332,7 +333,6 @@ cmip6-ng:
     file: "*.nc"
   blacklist:
     - work
-  historical_before: 2015
 
 cordex:
   directory_paths:
