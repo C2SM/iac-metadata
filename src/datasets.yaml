@@ -388,7 +388,7 @@ CORDEX-FPSCONV:
     - ensemble_member
     - RCM
   pattern:
-    file: "{variable}_{domain}_{GCM}_{scenario}_{ensemble_member}_{RCM}_*_{temporal_resolution}_*.nc"
+    file: "*.nc"
   blacklist:
     - processed_CPMs
     - processed_RCMs
