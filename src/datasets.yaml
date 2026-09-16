@@ -378,7 +378,7 @@ cordex-reklies:
 
 CORDEX-FPSCONV:
   directory_paths:
-    - /net/atmos/data/CORDEX-FPSCONV/
+    - /net/atmos/data/CORDEX-FPSCONV
   labels:
     - domain
     - temporal_resolution
