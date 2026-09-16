@@ -392,7 +392,6 @@ CORDEX-FPSCONV:
   blacklist:
     - processed_CPMs
     - processed_RCMs
-  map_root: True
 
 era5_cds:
   directory_paths:
