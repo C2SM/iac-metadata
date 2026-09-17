@@ -378,9 +378,8 @@ cordex-reklies:
 
 CORDEX-FPSCONV:
   directory_paths:
-    - /net/atmos/data/CORDEX-FPSCONV
+    - /net/atmos/data/CORDEX-FPSCONV/ALP-3
   labels:
-    - domain
     - temporal_resolution
     - variable
     - scenario
