@@ -385,8 +385,11 @@ CORDEX-FPSCONV:
     - variable
     - scenario
     - GCM
+    - scenario
     - ensemble_member
     - RCM
+    - nesting
+    - temporal_resolution
   pattern:
     file: "*.nc"
   blacklist:
