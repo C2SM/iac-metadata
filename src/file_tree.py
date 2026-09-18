@@ -301,6 +301,8 @@ def build_file_tree(directory, dataset, label_index, tree=None):
         print(f"Entering directory {directory}")
 
     if dataset['labels'][label_index] == dataset['labels'][-1]:
+        logging.info(f"Reached final label for directory: {directory}")
+        print(f"Reached final label for directory: {directory}")
         path = directory
         # Return a file list
         file_list = sorted(glob.glob(f"{path}/{dataset['pattern']['file']}"))
@@ -318,6 +320,8 @@ def build_file_tree(directory, dataset, label_index, tree=None):
             logging.warning(f"Skipping empty directory '{path}'")
             print(f"Skipping empty directory '{path}'")
     else:
+        logging.info(f"Processing directory: {directory} with label: {dataset['labels'][label_index]}"
+        )
         items = sorted(os.listdir(directory))
 
         # Some datasets (e.g. cmip6-ng) stop nesting subdirectories before
@@ -330,6 +334,9 @@ def build_file_tree(directory, dataset, label_index, tree=None):
             file_list = sorted(
                 os.path.basename(f) for f in glob.glob(
                     f"{directory}/{dataset['pattern']['file']}"))
+            logging.info(
+                f"Reached final label for directory: {directory}, building flat leaf tree")
+            logging.info(f"File list: {file_list}")
             if file_list:
                 tree = build_flat_leaf_tree(file_list, dataset['labels'],
                                            label_index)
