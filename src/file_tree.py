@@ -260,6 +260,8 @@ def build_flat_leaf_tree(file_list, labels, label_index):
         if len(tokens) != len(labels):
             logging.warning(f"Skipping file with unexpected name shape: {filename}")
             print(f"WARNING: Skipping file with unexpected name shape: {filename}")
+            logging.warning(f"Expected {len(labels)} labels ({', '.join(labels)}) got {len(tokens)} tokens: {tokens}")
+            print(f"WARNING: Expected {len(labels)} labels ({', '.join(labels)}) tokens, got {len(tokens)}: {tokens}")
             continue
         node = tree
         for token in tokens[label_index:-1]:
