@@ -300,7 +300,7 @@ def build_file_tree(directory, dataset, label_index, tree=None):
         )
         print(f"Entering directory {directory}")
 
-    if dataset['labels'][label_index] == dataset['labels'][-1]:
+    if dataset['labels'][label_index] == dataset['labels'][-1] and not any(os.path.isdir(os.path.join(directory, item)) for item in os.listdir(directory)):
         logging.info(f"Reached final label for directory: {directory}")
         print(f"Reached final label for directory: {directory}")
         path = directory
@@ -317,17 +317,8 @@ def build_file_tree(directory, dataset, label_index, tree=None):
                 result = check_completeness(file_list, dataset, path)
                 tree = result
         else:
-            # Check if folder instead of files, and if so, this was not the final label, so continue to recurse
-            if any(os.path.isdir(os.path.join(directory, item)) for item in os.listdir(directory)):
-                logging.info(
-                    f"Directory {directory} contains subdirectories, continuing recursion."
-                )
-                print(
-                    f"Directory {directory} contains subdirectories, continuing recursion."
-                )
-            else:
-                logging.warning(f"Skipping empty directory '{path}'")
-                print(f"Skipping empty directory '{path}'")
+            logging.warning(f"Skipping empty directory '{path}'")
+            print(f"Skipping empty directory '{path}'")
     else:
         logging.info(f"Processing directory: {directory} with label: {dataset['labels'][label_index]}"
         )
