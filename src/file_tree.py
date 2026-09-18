@@ -254,17 +254,18 @@ def build_flat_leaf_tree(file_list, labels, label_index):
         dict: Nested dictionary representing the remaining labels.
     """
     tree = {}
+    logging.info(f"Building tree with label_index: {label_index}")
     for filename in file_list:
         stem = filename.rsplit('.', 1)[0]
         tokens = stem.split('_')
-        if len(tokens) != len(labels):
-            logging.warning(f"Skipping file with unexpected name shape: {filename}")
-            print(f"WARNING: Skipping file with unexpected name shape: {filename}")
+        if len(tokens) != len(labels[label_index:]):
+            #logging.warning(f"Skipping file with unexpected name shape: {filename}")
+            #print(f"WARNING: Skipping file with unexpected name shape: {filename}")
             logging.warning(f"Expected {len(labels)} labels ({', '.join(labels)}) got {len(tokens)} tokens: {tokens}")
             print(f"WARNING: Expected {len(labels)} labels ({', '.join(labels)}) tokens, got {len(tokens)}: {tokens}")
-            continue
+            #continue
         node = tree
-        for token in tokens[label_index:-1]:
+        for token in tokens[:-1]:
             node = node.setdefault(token, {})
         node.setdefault(tokens[-1], {})
     return tree

@@ -384,6 +384,8 @@ CORDEX-FPSCONV:
     - temporal_resolution
     - variable
     - scenario
+    - variable
+    - domain
     - GCM
     - scenario
     - ensemble_member
