@@ -242,6 +242,7 @@ def build_flat_leaf_tree(file_list, labels, label_index):
     label, in the same order as `labels` (e.g. cmip6-ng, where GCM,
     scenario, ensemble_member and grid all live in the filename rather than
     as further subdirectories).
+    FOr CORDEX-FPSCONV the last label is the date which needs to
 
     Args:
         file_list (list): File names (no directory component).
@@ -268,7 +269,12 @@ def build_flat_leaf_tree(file_list, labels, label_index):
         node = tree
         for token in tokens[:-1]:
             node = node.setdefault(token, {})
-        node.setdefault(tokens[-1], {})
+        if "-" in tokens[-1]:
+            # for CORDEX-FPSCONV the last label is the date which needs to be stored as a set of date ranges
+            node.setdefault("date_range", {tokens[-1]})
+        else:
+            # for cmip6-ng there is no date in the last label, so we just store the last token as a key with an empty dict as value
+            node.setdefault(tokens[-1], {})
     return tree
 
 
@@ -303,7 +309,7 @@ def build_file_tree(directory, dataset, label_index, tree=None):
             f"Entering directory: {directory} with label: {dataset['labels'][label_index]}"
         )
         print(f"Entering directory {directory}")
-
+    print(dataset)
     if dataset['labels'][label_index] == dataset['labels'][-1] and not any(os.path.isdir(os.path.join(directory, item)) for item in os.listdir(directory)):
         logging.info(f"Reached final label for directory: {directory}")
         print(f"Reached final label for directory: {directory}")
@@ -342,7 +348,6 @@ def build_file_tree(directory, dataset, label_index, tree=None):
                     f"{directory}/{dataset['pattern']['file']}"))
             print(
                 f"Reached final label for directory: {directory}, building flat leaf tree")
-            print(f"File list: {file_list}")
             if file_list:
                 tree = build_flat_leaf_tree(file_list, dataset['labels'],
                                            label_index)

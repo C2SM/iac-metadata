@@ -395,8 +395,8 @@ CORDEX-FPSCONV:
   pattern:
     file: "*.nc"
   blacklist:
-    - processed_CPMs
-    - processed_RCMs
+    - processed_*
+
 
 era5_cds:
   directory_paths:
