@@ -267,7 +267,7 @@ def build_flat_leaf_tree(file_list, labels, label_index):
             #print(f"WARNING: Expected {len(labels)} labels ({', '.join(labels)}) tokens, got {len(tokens)}: {tokens}")
             #continue
         node = tree
-        for token in tokens[:-1]:
+        for token in tokens[label_index:-1]:
             node = node.setdefault(token, {})
         if "-" in tokens[-1]:
             # for CORDEX-FPSCONV the last label is the date which needs to be stored as a set of date ranges
