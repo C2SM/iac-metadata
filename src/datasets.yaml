@@ -61,6 +61,7 @@ CORDEX-FPSCONV:
   blacklist:
     - processed_CPMs
     - processed_RCMs
+    - lw_output_cosmo
 
 
 era5_cds:
