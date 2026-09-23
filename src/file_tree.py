@@ -255,25 +255,21 @@ def build_flat_leaf_tree(file_list, labels, label_index):
         dict: Nested dictionary representing the remaining labels.
     """
     tree = {}
-    logging.info(f"Building tree with label_index: {label_index}")
-    print(f"Building tree with label_index: {label_index}")
     for filename in file_list:
         stem = filename.rsplit('.', 1)[0]
         tokens = stem.split('_')
-        if len(tokens) != len(labels):
+        if len(tokens) != len(labels[label_index:]):
             #logging.warning(f"Skipping file with unexpected name shape: {filename}")
             #print(f"WARNING: Skipping file with unexpected name shape: {filename}")
-            logging.warning(f"Expected {len(labels)} labels ({', '.join(labels)}) got {len(tokens)} tokens: {tokens}")
-            print(f"WARNING: Expected {len(labels)} labels ({', '.join(labels)}), got {len(tokens)} tokens: {tokens}")
+            logging.warning(f"Expected {len(labels[label_index:])} labels ({', '.join(labels[label_index:])}), got {len(tokens)} tokens: {tokens}")
+            print(f"WARNING: Expected {len(labels[label_index:])} labels ({', '.join(labels[label_index:])}), got {len(tokens)} tokens: {tokens}")
             #continue
         node = tree
         for token in tokens[label_index:-1]:
             node = node.setdefault(token, {})
         if "-" in tokens[-1]:
             # for CORDEX-FPSCONV the last label is the date which needs to be stored as a string of date ranges
-            print(type(tokens[-1]))
-            print(tokens[-1])
-            node.setdefault("date_range", {tokens[-1]})
+            node.setdefault("date_range", tokens[-1])
         else:
             # for cmip6-ng there is no date in the last label, so we just store the last token as a key with an empty dict as value
             node.setdefault(tokens[-1], {})
