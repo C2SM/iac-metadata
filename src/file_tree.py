@@ -242,7 +242,7 @@ def build_flat_leaf_tree(file_list, labels, label_index):
     label, in the same order as `labels` (e.g. cmip6-ng, where GCM,
     scenario, ensemble_member and grid all live in the filename rather than
     as further subdirectories).
-    FOr CORDEX-FPSCONV the last label is the date which needs to
+    For CORDEX-FPSCONV the last label is the date which needs to be stored as a string of date ranges.
 
     Args:
         file_list (list): File names (no directory component).
@@ -260,17 +260,19 @@ def build_flat_leaf_tree(file_list, labels, label_index):
     for filename in file_list:
         stem = filename.rsplit('.', 1)[0]
         tokens = stem.split('_')
-        if len(tokens) != len(labels[label_index:]):
+        if len(tokens) != len(labels):
             #logging.warning(f"Skipping file with unexpected name shape: {filename}")
             #print(f"WARNING: Skipping file with unexpected name shape: {filename}")
             logging.warning(f"Expected {len(labels)} labels ({', '.join(labels)}) got {len(tokens)} tokens: {tokens}")
-            #print(f"WARNING: Expected {len(labels)} labels ({', '.join(labels)}) tokens, got {len(tokens)}: {tokens}")
+            print(f"WARNING: Expected {len(labels)} labels ({', '.join(labels)}), got {len(tokens)} tokens: {tokens}")
             #continue
         node = tree
         for token in tokens[label_index:-1]:
             node = node.setdefault(token, {})
         if "-" in tokens[-1]:
-            # for CORDEX-FPSCONV the last label is the date which needs to be stored as a set of date ranges
+            # for CORDEX-FPSCONV the last label is the date which needs to be stored as a string of date ranges
+            print(type(tokens[-1]))
+            print(tokens[-1])
             node.setdefault("date_range", {tokens[-1]})
         else:
             # for cmip6-ng there is no date in the last label, so we just store the last token as a key with an empty dict as value
@@ -309,7 +311,7 @@ def build_file_tree(directory, dataset, label_index, tree=None):
             f"Entering directory: {directory} with label: {dataset['labels'][label_index]}"
         )
         print(f"Entering directory {directory}")
-    print(dataset)
+
     # check if subdirectories in the current directory are present
     # For CORDEX-FPSCONV lables occur in path and filenames, the last label temporal resolution is also the first in the file tree,
     # so we need to check if there are subdirectories in the current directory to avoid early termination of the recursion
@@ -467,8 +469,7 @@ def main(dataset, output_path):
                     file_tree_root['data'][item] = build_file_tree(
                         item_path, datasets[dataset], 0)
                     logging.info(f"File tree creation for {item} completed.")
-    if dataset == 'CORDEX-FPSCONV':
-        print(file_tree_root)
+
     # Save the file trees to a JSON file
     output_filename = f'file_tree_{dataset}.json'
     output_json_path = os.path.join(output_path, output_filename)
