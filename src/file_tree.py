@@ -310,7 +310,12 @@ def build_file_tree(directory, dataset, label_index, tree=None):
         )
         print(f"Entering directory {directory}")
     print(dataset)
-    if dataset['labels'][label_index] == dataset['labels'][-1] and not any(os.path.isdir(os.path.join(directory, item)) for item in os.listdir(directory)):
+    # check if subdirectories in the current directory are present
+    # For CORDEX-FPSCONV lables occur in path and filenames, the last label temporal resolution is also the first in the file tree,
+    # so we need to check if there are subdirectories in the current directory to avoid early termination of the recursion
+    with os.scandir(directory) as entries:
+        has_subdirs = any(entry.is_dir() for entry in entries)
+    if dataset['labels'][label_index] == dataset['labels'][-1] and not has_subdirs:
         logging.info(f"Reached final label for directory: {directory}")
         print(f"Reached final label for directory: {directory}")
         path = directory
@@ -430,7 +435,7 @@ def main(dataset, output_path):
             # Apply labels starting with the first label for each sub-directory, skipping 'work'
             for item in sorted(os.listdir(path)):
                 item_path = os.path.join(path, item)
-                if any(blacklisted_item in item.lower()
+                if any(blacklisted_item.lower() in item.lower()
                        for blacklisted_item in blacklist):
                     logging.info(
                         f"Skipping directory '{item}' as it contains a blacklisted item"
@@ -449,7 +454,7 @@ def main(dataset, output_path):
             # Apply labels starting with the first label for each sub-directory, skipping 'work'
             for item in sorted(os.listdir(path)):
                 item_path = os.path.join(path, item)
-                if any(blacklisted_item in item.lower()
+                if any(blacklisted_item.lower() in item.lower()
                        for blacklisted_item in blacklist):
                     logging.info(
                         f"Skipping directory '{item}' as it contains a blacklisted item"
@@ -462,7 +467,8 @@ def main(dataset, output_path):
                     file_tree_root['data'][item] = build_file_tree(
                         item_path, datasets[dataset], 0)
                     logging.info(f"File tree creation for {item} completed.")
-
+    if dataset == 'CORDEX-FPSCONV':
+        print(file_tree_root)
     # Save the file trees to a JSON file
     output_filename = f'file_tree_{dataset}.json'
     output_json_path = os.path.join(output_path, output_filename)
