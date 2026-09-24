@@ -78,7 +78,16 @@ def remove_late_historical(dates, dataset):
 
     for date_range in dates:
         if '-' in date_range:
-            start, end = date_range.split("-")
+            try:
+                start, end = date_range.split("-")
+            except ValueError:
+                logging.warning(
+                    f"Invalid date range format: {date_range}"
+                )
+                print(
+                    f"WARNING: Invalid date range format: {date_range}"
+                )
+                continue
             if int(end[:4]) < dataset['historical_before']:
                 result.append(date_range)
             else:
