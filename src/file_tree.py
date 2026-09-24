@@ -269,7 +269,7 @@ def build_flat_leaf_tree(file_list, labels, label_index):
             node = node.setdefault(token, {})
         if "-" in tokens[-1]:
             # for CORDEX-FPSCONV the last label is the date which needs to be stored as a string of date ranges
-            node.setdefault("date_range", tokens[-1])
+            node.setdefault("date_range", {})
         else:
             # for cmip6-ng there is no date in the last label, so we just store the last token as a key with an empty dict as value
             node.setdefault(tokens[-1], {})
@@ -354,6 +354,10 @@ def build_file_tree(directory, dataset, label_index, tree=None):
             if file_list:
                 tree = build_flat_leaf_tree(file_list, dataset['labels'],
                                            label_index)
+                # CORDEX-FPSCONV: check completeness of the file list and add date_range to the tree if it is empty
+                if tree["date_range"] == {}:
+                    result = check_completeness(file_list, dataset, directory)
+                    tree = result
             else:
                 logging.warning(f"Skipping empty directory '{directory}'")
                 print(f"Skipping empty directory '{directory}'")
