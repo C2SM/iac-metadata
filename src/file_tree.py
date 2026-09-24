@@ -286,7 +286,7 @@ def build_flat_leaf_tree(file_list, labels, label_index):
         else:
             # for cmip6-ng there is no date in the last label, so we just store the last token as a key with an empty dict as value
             node.setdefault(tokens[-1], {})
-        print(tree)
+
     return tree
 
 

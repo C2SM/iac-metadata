@@ -62,6 +62,7 @@ CORDEX-FPSCONV:
     - processed_CPMs
     - processed_RCMs
     - lw_output_cosmo
+  historical_before: 2015
 
 
 era5_cds:
