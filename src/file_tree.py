@@ -334,8 +334,16 @@ def build_file_tree(directory, dataset, label_index, tree=None):
     # check if subdirectories in the current directory are present
     # For CORDEX-FPSCONV lables occur in path and filenames, the last label temporal resolution is also the first in the file tree,
     # so we need to check if there are subdirectories in the current directory to avoid early termination of the recursion
+    # for ERA5 we need to stop the recursion at the last label "grid" even though there are subdirectories with the YEAR
     with os.scandir(directory) as entries:
         has_subdirs = any(entry.is_dir() for entry in entries)
+    if has_subdirs:
+        # check if the subdirectories are YYYY, if so we need to stop the recursion at the last label "grid" even though there are subdirectories with the YEAR
+        if dataset['labels'][label_index] == dataset['labels'][-1]:
+            with os.scandir(directory) as entries:
+                has_subdirs = any(
+                    entry.is_dir() and not entry.name.isdigit() for entry in entries
+                )
     if dataset['labels'][label_index] == dataset['labels'][-1] and not has_subdirs:
         logging.info(f"Reached final label for directory: {directory}")
         print(f"Reached final label for directory: {directory}")
