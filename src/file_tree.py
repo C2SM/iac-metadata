@@ -120,6 +120,19 @@ def log_and_print_warning(end_current_str, start_next_str):
     )
 
 
+def has_key(data, target_key):
+    """
+    Checks if a target key exists in a nested dictionary or list.
+    """
+    if isinstance(data, dict):
+        if target_key in data:
+            return True
+        return any(has_key(v, target_key) for v in data.values())
+    elif isinstance(data, list):
+        return any(has_key(item, target_key) for item in data)
+    return False
+
+
 def check_completeness(file_list, dataset, path):
     """
     Check the completeness of a file list based on the file names.
@@ -273,6 +286,7 @@ def build_flat_leaf_tree(file_list, labels, label_index):
         else:
             # for cmip6-ng there is no date in the last label, so we just store the last token as a key with an empty dict as value
             node.setdefault(tokens[-1], {})
+        print(tree)
     return tree
 
 
@@ -355,7 +369,7 @@ def build_file_tree(directory, dataset, label_index, tree=None):
                 tree = build_flat_leaf_tree(file_list, dataset['labels'],
                                            label_index)
                 # CORDEX-FPSCONV: check completeness of the file list and add date_range to the tree if it is empty
-                if tree["date_range"] == {}:
+                if has_key(tree, "date_range"):
                     result = check_completeness(file_list, dataset, directory)
                     tree = result
             else:
