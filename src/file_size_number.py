@@ -62,6 +62,7 @@ def save_json_file(meta_dict, output_file, indent=None, upload=False):
 
 
 def main(dataset_name, output_path=False, upload=False):
+    os.makedirs(output_path, exist_ok=True)
     with open('datasets.yaml', 'r') as file:
         datasets = yaml.safe_load(file)
 

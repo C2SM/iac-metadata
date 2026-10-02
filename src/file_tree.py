@@ -443,6 +443,7 @@ def save_file_tree_to_json(file_tree, output_file, indent=None, upload=False):
 
 
 def main(dataset, output_path, upload=False):
+    os.makedirs(output_path, exist_ok=True)
     # Setup basic configuration for logging
     logging.basicConfig(filename=f'{output_path}/file_tree_{dataset}.log',
                         level=logging.INFO,
