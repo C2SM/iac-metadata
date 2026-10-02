@@ -129,19 +129,6 @@ def log_and_print_warning(end_current_str, start_next_str):
     )
 
 
-def has_key(data, target_key):
-    """
-    Checks if a target key exists in a nested dictionary or list.
-    """
-    if isinstance(data, dict):
-        if target_key in data:
-            return True
-        return any(has_key(v, target_key) for v in data.values())
-    elif isinstance(data, list):
-        return any(has_key(item, target_key) for item in data)
-    return False
-
-
 def check_completeness(file_list, dataset, path):
     """
     Check the completeness of a file list based on the file names.
@@ -183,7 +170,7 @@ def check_completeness(file_list, dataset, path):
     file_parts = [file.split('_') for file in file_list]
 
     # Handle files with "fx" in the name
-    if any('fx' in parts for parts in file_parts):
+    if 'fx' in dates or any('fx' in parts for parts in file_parts):
         # 'fx' files do not have time information -> return an empty dict
         return {}
 
@@ -238,6 +225,10 @@ def check_completeness(file_list, dataset, path):
         grouped_dates = {}
         for date_str in dates:
             date_format = detect_format(date_str.split('-')[0])
+            if date_format is None:
+                logging.warning(f"Skipping unrecognized date '{date_str}' in {path}")
+                print(f"WARNING: Skipping unrecognized date '{date_str}' in {path}")
+                continue
             if date_format not in grouped_dates:
                 grouped_dates[date_format] = []
             grouped_dates[date_format].append(date_str)
@@ -264,7 +255,6 @@ def build_flat_leaf_tree(file_list, labels, label_index):
     label, in the same order as `labels` (e.g. cmip6-ng, where GCM,
     scenario, ensemble_member and grid all live in the filename rather than
     as further subdirectories).
-    For CORDEX-FPSCONV the last label is the date which needs to be stored as a string of date ranges.
 
     Args:
         file_list (list): File names (no directory component).
@@ -280,22 +270,60 @@ def build_flat_leaf_tree(file_list, labels, label_index):
     for filename in file_list:
         stem = filename.rsplit('.', 1)[0]
         tokens = stem.split('_')
-        if len(tokens) != len(labels[label_index:]):
-            #logging.warning(f"Skipping file with unexpected name shape: {filename}")
-            #print(f"WARNING: Skipping file with unexpected name shape: {filename}")
-            logging.warning(f"Expected {len(labels[label_index:])} labels ({', '.join(labels[label_index:])}), got {len(tokens)} tokens: {tokens}")
-            print(f"WARNING: Expected {len(labels[label_index:])} labels ({', '.join(labels[label_index:])}), got {len(tokens)} tokens: {tokens}")
-            #continue
+        if len(tokens) != len(labels):
+            logging.warning(f"Skipping file with unexpected name shape: {filename}")
+            print(f"WARNING: Skipping file with unexpected name shape: {filename}")
+            continue
         node = tree
         for token in tokens[label_index:-1]:
             node = node.setdefault(token, {})
-        if "-" in tokens[-1]:
-            # for CORDEX-FPSCONV the last label is the date which needs to be stored as a string of date ranges
-            node.setdefault("date_range", {})
-        else:
-            # for cmip6-ng there is no date in the last label, so we just store the last token as a key with an empty dict as value
-            node.setdefault(tokens[-1], {})
+        node.setdefault(tokens[-1], {})
+    return tree
 
+
+def build_named_leaf_tree(file_list, dataset, label_index, directory):
+    """
+    Builds a nested dictionary from files whose names start with the tokens
+    listed in `pattern.filename_labels` and end with a date range (e.g.
+    CORDEX-FPSCONV). Files are grouped by the labels below `label_index`, and
+    each group gets its own date range via `check_completeness`.
+
+    Args:
+        file_list (list): File names (no directory component).
+        dataset: A dictionary containing the dataset information.
+        label_index (int): Index of the label represented by `directory`.
+        directory (str): Directory holding the files.
+
+    Returns:
+        dict: Nested dictionary representing the remaining labels.
+    """
+    filename_labels = dataset['pattern']['filename_labels']
+    remaining_labels = dataset['labels'][label_index + 1:]
+    groups = {}
+    skipped = []
+    for filename in file_list:
+        tokens = filename.rsplit('.', 1)[0].split('_')
+        if len(tokens) <= len(filename_labels):
+            skipped.append(filename)
+            continue
+        fields = dict(zip(filename_labels, tokens))
+        key = tuple(fields[label] for label in remaining_labels)
+        groups.setdefault(key, []).append(filename)
+
+    if skipped:
+        logging.warning(
+            f"Skipping {len(skipped)} file(s) with unexpected name shape in {directory}, e.g. {skipped[0]}"
+        )
+        print(
+            f"WARNING: Skipping {len(skipped)} file(s) with unexpected name shape in {directory}, e.g. {skipped[0]}"
+        )
+
+    tree = {}
+    for key, files in sorted(groups.items()):
+        node = tree
+        for token in key[:-1]:
+            node = node.setdefault(token, {})
+        node[key[-1]] = check_completeness(files, dataset, directory)
     return tree
 
 
@@ -331,22 +359,7 @@ def build_file_tree(directory, dataset, label_index, tree=None):
         )
         print(f"Entering directory {directory}")
 
-    # check if subdirectories in the current directory are present
-    # For CORDEX-FPSCONV lables occur in path and filenames, the last label temporal resolution is also the first in the file tree,
-    # so we need to check if there are subdirectories in the current directory to avoid early termination of the recursion
-    # for ERA5 we need to stop the recursion at the last label "grid" even though there are subdirectories with the YEAR
-    with os.scandir(directory) as entries:
-        has_subdirs = any(entry.is_dir() for entry in entries)
-    if has_subdirs:
-        # check if the subdirectories are YYYY, if so we need to stop the recursion at the last label "grid" even though there are subdirectories with the YEAR
-        if dataset['labels'][label_index] == dataset['labels'][-1]:
-            with os.scandir(directory) as entries:
-                has_subdirs = any(
-                    entry.is_dir() and not entry.name.isdigit() for entry in entries
-                )
-    if dataset['labels'][label_index] == dataset['labels'][-1] and not has_subdirs:
-        logging.info(f"Reached final label for directory: {directory}")
-        print(f"Reached final label for directory: {directory}")
+    if label_index == len(dataset['labels']) - 1:
         path = directory
         # Return a file list
         file_list = sorted(glob.glob(f"{path}/{dataset['pattern']['file']}"))
@@ -376,14 +389,12 @@ def build_file_tree(directory, dataset, label_index, tree=None):
             file_list = sorted(
                 os.path.basename(f) for f in glob.glob(
                     f"{directory}/{dataset['pattern']['file']}"))
-
-            if file_list:
+            if file_list and 'filename_labels' in dataset['pattern']:
+                tree = build_named_leaf_tree(file_list, dataset, label_index,
+                                             directory)
+            elif file_list:
                 tree = build_flat_leaf_tree(file_list, dataset['labels'],
                                            label_index)
-                # CORDEX-FPSCONV: check completeness of the file list and add date_range to the tree if it is empty
-                if has_key(tree, "date_range"):
-                    result = check_completeness(file_list, dataset, directory)
-                    tree = result
             else:
                 logging.warning(f"Skipping empty directory '{directory}'")
                 print(f"Skipping empty directory '{directory}'")

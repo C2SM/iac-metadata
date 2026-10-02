@@ -382,19 +382,20 @@ CORDEX-FPSCONV:
     - temporal_resolution
     - variable
     - scenario
-    - variable
-    - domain
     - GCM
-    - scenario
-    - ensemble_member
     - RCM
-    - nesting
-    - temporal_resolution
+    - ensemble_member
   pattern:
     file: "*.nc"
+    # Leading underscore-separated filename tokens; the date is the last token
+    filename_labels:
+      - variable
+      - domain
+      - GCM
+      - scenario
+      - ensemble_member
+      - RCM
   blacklist:
-    - processed_CPMs
-    - processed_RCMs
     - lw_output_cosmo
   historical_before: 2015
 
