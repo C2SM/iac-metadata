@@ -22,7 +22,7 @@ failures=0
 while IFS= read -r dataset; do
     [ -z "$dataset" ] && continue
     echo "=== file_tree: $dataset ==="
-    python file_tree.py "$dataset" || failures=$((failures + 1))
+    python file_tree.py "$dataset" --upload || failures=$((failures + 1))
 done < datasets.txt
 
 echo "Done. $failures dataset(s) failed."
