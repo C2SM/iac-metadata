@@ -34,6 +34,32 @@ gh workflow run file_size_number.yml --repo C2SM/iac-metadata
 gh workflow run publish_datasets.yml --repo C2SM/iac-metadata
 ```
 
+`file_index.yml` and `file_size_number.yml` take an optional `dataset`
+input (a top-level key in [`src/datasets.yaml`](src/datasets.yaml)) to
+process only that dataset instead of all of them:
+
+```bash
+gh workflow run file_index.yml --repo C2SM/iac-metadata -f dataset=cmip7
+gh workflow run file_size_number.yml --repo C2SM/iac-metadata -f dataset=cmip7
+```
+
+### Dry run
+
+To test changes without publishing anything, run the scripts by hand on a
+host that mounts the dataset directories (e.g. iacdipl-7) with
+`--dry-run`. The JSON files are then written to the current directory
+only and are not copied to `/net/co2/c2sm-services/zephyr/file_index`:
+
+```bash
+rsync -a src/ iacdipl-7:/tmp/iac-metadata-test/
+ssh iacdipl-7
+cd /tmp/iac-metadata-test
+bash run_file_index.sh --dry-run cmip7        # one or more datasets
+bash run_file_size_number.sh --dry-run cmip7
+```
+
+Leaving out the dataset names processes every dataset in `datasets.yaml`.
+
 ## How it works
 
 GitHub-hosted runners can't reach `iacdipl-7.ethz.ch` directly (ETH's
@@ -139,9 +165,9 @@ if that's already in place.
 │   ├── file_size_number.py       # Computes a dataset's size/count -> meta_<dataset>.json
 │   ├── get_datasets.py           # Extracts dataset names from datasets.yaml -> datasets.txt
 │   ├── requirements.txt          # pandas, PyYAML, tqdm
-│   ├── run_pipeline.sh           # Shared: create venv, install requirements
-│   ├── run_file_index.sh         # Loops file_tree.py over all datasets
-│   └── run_file_size_number.sh   # Loops file_size_number.py over all datasets
+│   ├── run_pipeline.sh           # Shared: create venv, loop scripts over datasets
+│   ├── run_file_index.sh         # Loops file_tree.py over all or selected datasets
+│   └── run_file_size_number.sh   # Loops file_size_number.py over all or selected datasets
 └── .github/workflows/
     ├── file_index.yml            # Daily: runs run_file_index.sh on iacdipl-7
     ├── file_size_number.yml      # Daily: runs run_file_size_number.sh on iacdipl-7

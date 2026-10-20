@@ -21,7 +21,12 @@ name: File index
 on:
   schedule:
     - cron: '0 2 * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      dataset:
+        description: 'Dataset key from src/datasets.yaml (leave empty for all)'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -35,6 +40,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Validate dataset input
+        env:
+          DATASET: ${{ inputs.dataset }}
+        run: |
+          if [ -n "$DATASET" ] && ! grep -qxF "$DATASET:" src/datasets.yaml; then
+            echo "::error::Unknown dataset '$DATASET', see the top-level keys in src/datasets.yaml"
+            exit 1
+          fi
 
       - name: Configure ssh
         env:
@@ -80,10 +94,12 @@ jobs:
         run: rsync -avh src/ "iacdipl7:${{ steps.workdir.outputs.path }}/"
 
       - name: Run file index pipeline on iacdipl-7
+        env:
+          DATASET: ${{ inputs.dataset }}
         run: |
           ssh iacdipl7 bash -s << REMOTE
           cd '${{ steps.workdir.outputs.path }}'
-          bash run_file_index.sh
+          bash run_file_index.sh $DATASET
           REMOTE
 
       - name: Remove remote workspace
