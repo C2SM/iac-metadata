@@ -362,23 +362,27 @@ def build_file_tree(directory, dataset, label_index, tree=None):
     return tree
 
 
-def save_file_tree_to_json(file_tree, output_file, indent=None):
+def save_file_tree_to_json(file_tree, output_file, indent=None, dry_run=False):
     """
     Save the generated file tree dictionary to a JSON file.
     Args:
         file_tree (dict): The file tree to save.
         output_file (str): The path to the JSON file where the file tree will be saved.
         indent (int, optional): The number of spaces to use for indentation.
+        dry_run (bool, optional): If True, do not copy the file to FILE_INDEX_DIR.
     """
     with open(output_file, 'w') as f:
         json.dump(file_tree, f, indent=indent)
     logging.info(f"File tree successfully saved to {output_file}")
 
+    if dry_run:
+        logging.info(f"Dry run: not copying {output_file} to {FILE_INDEX_DIR}")
+        return
     shutil.copy2(output_file, FILE_INDEX_DIR)
     logging.info(f"File {output_file} copied to {FILE_INDEX_DIR}")
 
 
-def main(dataset, output_path):
+def main(dataset, output_path, dry_run=False):
     # Setup basic configuration for logging
     logging.basicConfig(filename=f'{output_path}/file_tree_{dataset}.log',
                         level=logging.INFO,
@@ -448,14 +452,15 @@ def main(dataset, output_path):
     # Save the file trees to a JSON file
     output_filename = f'file_tree_{dataset}.json'
     output_json_path = os.path.join(output_path, output_filename)
-    save_file_tree_to_json(file_tree_root, output_json_path, indent=2)
+    save_file_tree_to_json(file_tree_root, output_json_path, indent=2,
+                           dry_run=dry_run)
     logging.info(
         f"File tree JSON file (human-readable) saved to {output_json_path}")
 
     # Save the file trees to a JSON file without indentation
     output_filename = f'file_tree_{dataset}_noindent.json'
     output_json_path = os.path.join(output_path, output_filename)
-    save_file_tree_to_json(file_tree_root, output_json_path)
+    save_file_tree_to_json(file_tree_root, output_json_path, dry_run=dry_run)
     logging.info(
         f"File tree JSON file (without indentation) saved to {output_json_path}"
     )
@@ -477,5 +482,8 @@ if __name__ == "__main__":
                         "--output",
                         help="Output path for the JSON files",
                         default=".")
+    parser.add_argument("--dry-run",
+                        action="store_true",
+                        help="Write the JSON files locally without publishing them")
     args = parser.parse_args()
-    main(args.dataset, args.output)
+    main(args.dataset, args.output, args.dry_run)
