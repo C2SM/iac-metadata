@@ -333,6 +333,22 @@ cmip6-ng:
   blacklist:
     - work
 
+cmip7:
+  directory_paths:
+    - /net/stratus/c2sm-data/cmip7
+  labels:
+    - scenario
+    - temporal_resolution
+    - variable
+    - GCM
+    - ensemble_member
+    - grid
+  pattern: 
+    file: "*.nc"
+  blacklist:
+    - work
+  historical_before: 2023
+
 cordex:
   directory_paths:
     - /net/atmos/data/cordex/EUR-11/historical
