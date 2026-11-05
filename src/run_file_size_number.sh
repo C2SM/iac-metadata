@@ -8,6 +8,10 @@ set -uo pipefail
 # /net/co2/c2sm-services/zephyr/file_index (see FILE_INDEX_DIR in
 # file_size_number.py), served at https://data.iac.ethz.ch/zephyr/file_index/.
 #
+# Usage: bash run_file_size_number.sh [--dry-run] [dataset ...]
+# Without datasets, all datasets in datasets.yaml are processed. With
+# --dry-run, the JSON files are written to the current directory only.
+#
 # Datasets are processed sequentially, one ssh session for the whole run -
 # unlike the old Jenkins job, which ran datasets in parallel branches. See
 # the workflow file for the resulting timeout.
@@ -16,14 +20,4 @@ source "$(dirname "$0")/run_pipeline.sh"
 
 setup_venv || exit 1
 
-python get_datasets.py datasets.yaml
-
-failures=0
-while IFS= read -r dataset; do
-    [ -z "$dataset" ] && continue
-    echo "=== file_size_number: $dataset ==="
-    python file_size_number.py "$dataset" --upload || failures=$((failures + 1))
-done < datasets.txt
-
-echo "Done. $failures dataset(s) failed."
-exit $((failures > 0))
+run_datasets file_size_number.py "$@"
