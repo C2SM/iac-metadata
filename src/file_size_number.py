@@ -1,6 +1,7 @@
 import argparse
 import os
 import shutil
+import sys
 import yaml
 import json
 import math
@@ -78,6 +79,11 @@ def main(dataset_name, output_path=False, dry_run=False):
         logging.info(f"Processing {directory_path}...")
         start_time = time.time()
         total_size, file_count = calculate_directory_metrics(directory_path)
+        # Exit before saving, so the file index keeps its last valid version.
+        if file_count == 0:
+            logging.error(f"No files found in {directory_path}")
+            sys.exit(f"ERROR: No files found for dataset '{dataset_name}' in "
+                     f"{directory_path}, nothing saved")
         end_time = time.time()
         time_passed = end_time - start_time
         last_updated = time.strftime('%Y-%m-%d %H:%M:%S',

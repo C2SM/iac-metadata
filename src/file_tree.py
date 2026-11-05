@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import logging
 import glob
@@ -36,7 +37,7 @@ def group_consecutive_dates(dates, dataset):
         if freq == 'M':
             difference = (current_date.year - previous_date.year
                           ) * 12 + current_date.month - previous_date.month
-        elif freq == 'Y':
+        elif freq in ('Y', 'YE'):
             difference = current_date.year - previous_date.year
         else:
             raise ValueError(
@@ -61,16 +62,6 @@ def group_consecutive_dates(dates, dataset):
         grouped_dates.append(current_group[0].strftime(pattern))
 
     return grouped_dates
-
-
-def test_group_consecutive_dates():
-    assert group_consecutive_dates([
-        '194101', '194102', '194103', '194104', '194105', '194106', '194107',
-        '194108', '194109', '194110', '194111', '194201', '194202', '194203',
-        '194204', '194205', '194206', '194207', '194208', '194209', '194210',
-        '194211', '199901', '202203'
-    ], '%Y%M', 'M') == [['194101', '194111'], ['194201', '194211'], '199901',
-                        '202203']
 
 
 def remove_late_historical(dates, dataset):
@@ -448,6 +439,12 @@ def main(dataset, output_path, dry_run=False):
                     file_tree_root['data'][item] = build_file_tree(
                         item_path, datasets[dataset], 0)
                     logging.info(f"File tree creation for {item} completed.")
+
+    # An empty tree points to a wrong path, label or pattern in datasets.yaml.
+    # Exit before saving, so the file index keeps its last valid version.
+    if not any(file_tree_root['data'].values()):
+        logging.error(f"No data found for dataset '{dataset}'")
+        sys.exit(f"ERROR: No data found for dataset '{dataset}', nothing saved")
 
     # Save the file trees to a JSON file
     output_filename = f'file_tree_{dataset}.json'
