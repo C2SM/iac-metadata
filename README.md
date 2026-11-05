@@ -95,6 +95,23 @@ its purpose wasn't documented in the Jenkinsfile - add it back (e.g. as a
 final step calling `gh workflow run` in some other repo) if it's still
 needed.
 
+## Local testing
+
+Both scripts write their JSON files to the output directory (`-o`, default
+`.`) and copy them to the file index only when `--upload` is given. The
+pipeline scripts pass `--upload`; a manual run stays local. Run from
+`src/` on a host with access to `/net/atmos/data` (e.g. co2):
+
+```bash
+cd src
+python file_tree.py CORDEX-FPSCONV -o /tmp/file_index_test
+python file_size_number.py CORDEX-FPSCONV -o /tmp/file_index_test
+```
+
+Note that a manual `workflow_dispatch` of `file_index.yml` or
+`file_size_number.yml` on a feature branch still writes to the production
+file index.
+
 ## datasets.json
 
 [`src/datasets.json`](src/datasets.json) is the list behind the dataset

@@ -21,16 +21,16 @@ setup_venv() {
 
 # Usage: run_datasets <script.py> [--dry-run] [dataset ...]
 # Runs <script.py> for the given datasets, or for every dataset in
-# datasets.yaml if none are given. --dry-run is passed on to the script,
-# which then writes its JSON files locally without publishing them.
+# datasets.yaml if none are given. The script is called with --upload to
+# publish its JSON files, unless --dry-run is given (local files only).
 run_datasets() {
     local script="$1"
     shift
-    local dry_run=()
+    local upload=(--upload)
     local datasets=()
     for arg in "$@"; do
         case "$arg" in
-            --dry-run) dry_run=(--dry-run) ;;
+            --dry-run) upload=() ;;
             *) datasets+=("$arg") ;;
         esac
     done
@@ -44,7 +44,7 @@ run_datasets() {
     for dataset in "${datasets[@]}"; do
         [ -z "$dataset" ] && continue
         echo "=== ${script%.py}: $dataset ==="
-        python "$script" "$dataset" "${dry_run[@]}" || failures=$((failures + 1))
+        python "$script" "$dataset" "${upload[@]}" || failures=$((failures + 1))
     done
 
     echo "Done. $failures dataset(s) failed."
