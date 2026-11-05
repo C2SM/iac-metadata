@@ -1,14 +1,15 @@
 name: Dry run
 
-# Runs both pipelines (file_index.yml, file_size_number.yml) for every
-# dataset on iacdipl-7 with --dry-run for each pull request that touches
-# src/, so a broken script or datasets.yaml entry fails the PR instead of
-# the next nightly run. Nothing is copied to the file index. Besides the
-# exit code, src/check_outputs.py fails the run if any dataset produced
-# an empty result.
+# Runs both pipelines (file_index.yml, file_size_number.yml) on iacdipl-7
+# with --dry-run for each pull request that touches src/, so a broken
+# script or datasets.yaml entry fails the PR instead of the next nightly
+# run. Nothing is copied to the file index. The scripts fail for datasets
+# without any data, e.g. due to a wrong path, label or pattern.
 #
-# A full run takes roughly as long as the nightly runs (up to ~2 h). A new
-# push to the PR cancels the run in progress.
+# If a PR only changes datasets.yaml/datasets.json, only the added or
+# modified datasets are run (see .github/scripts/select_datasets.py);
+# otherwise all of them, which takes roughly as long as the nightly runs
+# (up to ~2 h). A new push to the PR cancels the run in progress.
 #
 # Uses the same ssh setup and secrets as file_index.yml. Secrets are not
 # available to pull requests from forks, so the job is skipped for those.
@@ -18,6 +19,7 @@ on:
     paths:
       - src/**
       - .github/workflows/dry_run.yml
+      - .github/scripts/select_datasets.py
 
 permissions:
   contents: read
@@ -27,9 +29,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  select:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.select.outputs.run }}
+      datasets: ${{ steps.select.outputs.datasets }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Select datasets
+        id: select
+        run: |
+          pip install --quiet PyYAML
+          python .github/scripts/select_datasets.py | tee -a "$GITHUB_OUTPUT"
+
   dry-run:
     name: Dry run (${{ matrix.check }})
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    needs: select
+    if: needs.select.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 300
     strategy:
@@ -89,13 +115,11 @@ jobs:
 
       # -tt allocates a terminal, so a cancelled run also stops the remote
       # processes instead of leaving them scanning the file system.
-      - name: Dry run and check outputs on iacdipl-7
+      - name: Dry run on iacdipl-7
+        env:
+          DATASETS: ${{ needs.select.outputs.datasets }}
         run: |
-          ssh -tt iacdipl7 "
-            cd '${{ steps.workdir.outputs.path }}' || exit 1
-            bash ${{ matrix.script }} --dry-run; status=\$?
-            .venv/bin/python check_outputs.py ${{ matrix.check }} || status=1
-            exit \$status"
+          ssh -tt iacdipl7 "cd '${{ steps.workdir.outputs.path }}' && bash ${{ matrix.script }} --dry-run $DATASETS"
 
       - name: Remove remote workspace
         if: always() && steps.workdir.outputs.path != ''

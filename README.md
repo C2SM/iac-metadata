@@ -25,7 +25,8 @@ there's nothing left to keep in sync between the two repos.
 | [`file_index.yml`](.github/workflows/file_index.yml) | Daily, 02:00 UTC | `file_tree.py` for every dataset -> `file_tree_*.json` |
 | [`file_size_number.yml`](.github/workflows/file_size_number.yml) | Daily, 03:00 UTC | `file_size_number.py` for every dataset -> `meta_*.json` |
 | [`publish_datasets.yml`](.github/workflows/publish_datasets.yml) | Push to `main` touching `src/datasets.json` | Copies `datasets.json` straight to the file index - no script, no venv |
-| [`dry_run.yml`](.github/workflows/dry_run.yml) | Pull request touching `src/` | Both pipelines for every dataset with `--dry-run`, then `check_outputs.py` - see [Dry run](#dry-run) |
+| [`dry_run.yml`](.github/workflows/dry_run.yml) | Pull request touching `src/` | Both pipelines with `--dry-run` on iacdipl-7 - see [Dry run](#dry-run) |
+| [`checks.yml`](.github/workflows/checks.yml) | Pull request, push to `main` | Validates `datasets.yaml`/`datasets.json`, unit tests, `shellcheck` - see [Tests](#tests) |
 
 The first three also accept `workflow_dispatch` for a manual run:
 
@@ -60,20 +61,41 @@ bash run_file_size_number.sh --dry-run cmip7
 ```
 
 Leaving out the dataset names processes every dataset in `datasets.yaml`.
-Afterwards, check that every dataset produced a non-empty result (an
-empty one points to a wrong path, label or pattern in `datasets.yaml`):
+
+Both scripts exit with an error and save nothing if a dataset yields no
+data at all, which usually points to a wrong path, label or pattern in
+`datasets.yaml`. In the nightly runs, the file index then keeps its last
+valid version of that dataset and the workflow fails.
+
+[`dry_run.yml`](.github/workflows/dry_run.yml) runs this on every pull
+request that touches `src/`, so problems show up on the PR instead of in
+the next nightly run. If the PR only changes `datasets.yaml` or
+`datasets.json`, only the added or modified datasets are run; otherwise
+all of them, which takes about as long as the nightly runs (up to ~2 h).
+A new push to the PR cancels the run in progress. Pull requests from
+forks are skipped, since they have no access to the ssh secrets.
+
+## Tests
+
+[`checks.yml`](.github/workflows/checks.yml) runs within a minute on every
+pull request and needs no access to the data:
+
+- [`tests/test_datasets_config.py`](tests/test_datasets_config.py)
+  validates every entry in `datasets.yaml` (required and known keys,
+  types, supported `freq`) and checks that every `datasets.json` entry
+  refers to a dataset in `datasets.yaml`. A new option in `datasets.yaml`
+  has to be added to the known keys there.
+- [`tests/test_file_tree.py`](tests/test_file_tree.py) and
+  [`tests/test_file_size_number.py`](tests/test_file_size_number.py) run
+  the scripts on small directory trees in a temporary directory.
+- `shellcheck` lints the shell scripts in `src/`.
+
+To run the tests locally:
 
 ```bash
-.venv/bin/python check_outputs.py file_tree cmip7
-.venv/bin/python check_outputs.py file_size_number cmip7
+pip install -r src/requirements.txt pytest
+pytest
 ```
-
-[`dry_run.yml`](.github/workflows/dry_run.yml) does exactly this for all
-datasets on every pull request that touches `src/`, so problems show up
-on the PR instead of in the next nightly run. A full run takes about as
-long as the nightly runs (up to ~2 h); a new push to the PR cancels the
-run in progress. Pull requests from forks are skipped, since they have no
-access to the ssh secrets.
 
 ## How it works
 
@@ -176,7 +198,6 @@ if that's already in place.
 ├── src/
 │   ├── datasets.yaml             # Dataset definitions (paths, labels, patterns)
 │   ├── datasets.json             # Curated dataset-picker list - see datasets.json above
-│   ├── check_outputs.py          # Fails if a dataset's JSON output is missing or empty
 │   ├── file_tree.py              # Scans a dataset -> file_tree_<dataset>*.json
 │   ├── file_size_number.py       # Computes a dataset's size/count -> meta_<dataset>.json
 │   ├── get_datasets.py           # Extracts dataset names from datasets.yaml -> datasets.txt
@@ -184,11 +205,17 @@ if that's already in place.
 │   ├── run_pipeline.sh           # Shared: create venv, loop scripts over datasets
 │   ├── run_file_index.sh         # Loops file_tree.py over all or selected datasets
 │   └── run_file_size_number.sh   # Loops file_size_number.py over all or selected datasets
-└── .github/workflows/
-    ├── file_index.yml            # Daily: runs run_file_index.sh on iacdipl-7
-    ├── file_size_number.yml      # Daily: runs run_file_size_number.sh on iacdipl-7
-    ├── dry_run.yml               # On PR: dry-runs both pipelines and checks the outputs
-    └── publish_datasets.yml      # On push: copies datasets.json to iacdipl-7
+├── tests/                        # pytest suite, see Tests above
+├── pytest.ini
+└── .github/
+    ├── scripts/
+    │   └── select_datasets.py    # Picks the datasets dry_run.yml runs for a PR
+    └── workflows/
+        ├── file_index.yml        # Daily: runs run_file_index.sh on iacdipl-7
+        ├── file_size_number.yml  # Daily: runs run_file_size_number.sh on iacdipl-7
+        ├── dry_run.yml           # On PR: dry-runs both pipelines on iacdipl-7
+        ├── checks.yml            # On PR: config validation, unit tests, shellcheck
+        └── publish_datasets.yml  # On push: copies datasets.json to iacdipl-7
 ```
 
 ## Related repositories

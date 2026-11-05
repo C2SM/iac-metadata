@@ -1,0 +1,40 @@
+name: Checks
+
+# Fast checks that need no access to iacdipl-7: validates
+# src/datasets.yaml and src/datasets.json, runs the unit tests in tests/
+# and lints the shell scripts. See dry_run.yml for the slow run against
+# the real data.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: src/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r src/requirements.txt pytest
+
+      - name: Check Python syntax
+        run: python -m compileall -q src tests .github/scripts
+
+      - name: Lint shell scripts
+        run: shellcheck --severity=warning src/*.sh
+
+      - name: Run tests
+        run: pytest
