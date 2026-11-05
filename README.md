@@ -25,8 +25,9 @@ there's nothing left to keep in sync between the two repos.
 | [`file_index.yml`](.github/workflows/file_index.yml) | Daily, 02:00 UTC | `file_tree.py` for every dataset -> `file_tree_*.json` |
 | [`file_size_number.yml`](.github/workflows/file_size_number.yml) | Daily, 03:00 UTC | `file_size_number.py` for every dataset -> `meta_*.json` |
 | [`publish_datasets.yml`](.github/workflows/publish_datasets.yml) | Push to `main` touching `src/datasets.json` | Copies `datasets.json` straight to the file index - no script, no venv |
+| [`dry_run.yml`](.github/workflows/dry_run.yml) | Pull request touching `src/` | Both pipelines for every dataset with `--dry-run`, then `check_outputs.py` - see [Dry run](#dry-run) |
 
-All three also accept `workflow_dispatch` for a manual run:
+The first three also accept `workflow_dispatch` for a manual run:
 
 ```bash
 gh workflow run file_index.yml --repo C2SM/iac-metadata
@@ -59,6 +60,20 @@ bash run_file_size_number.sh --dry-run cmip7
 ```
 
 Leaving out the dataset names processes every dataset in `datasets.yaml`.
+Afterwards, check that every dataset produced a non-empty result (an
+empty one points to a wrong path, label or pattern in `datasets.yaml`):
+
+```bash
+.venv/bin/python check_outputs.py file_tree cmip7
+.venv/bin/python check_outputs.py file_size_number cmip7
+```
+
+[`dry_run.yml`](.github/workflows/dry_run.yml) does exactly this for all
+datasets on every pull request that touches `src/`, so problems show up
+on the PR instead of in the next nightly run. A full run takes about as
+long as the nightly runs (up to ~2 h); a new push to the PR cancels the
+run in progress. Pull requests from forks are skipped, since they have no
+access to the ssh secrets.
 
 ## How it works
 
@@ -161,6 +176,7 @@ if that's already in place.
 ├── src/
 │   ├── datasets.yaml             # Dataset definitions (paths, labels, patterns)
 │   ├── datasets.json             # Curated dataset-picker list - see datasets.json above
+│   ├── check_outputs.py          # Fails if a dataset's JSON output is missing or empty
 │   ├── file_tree.py              # Scans a dataset -> file_tree_<dataset>*.json
 │   ├── file_size_number.py       # Computes a dataset's size/count -> meta_<dataset>.json
 │   ├── get_datasets.py           # Extracts dataset names from datasets.yaml -> datasets.txt
@@ -171,6 +187,7 @@ if that's already in place.
 └── .github/workflows/
     ├── file_index.yml            # Daily: runs run_file_index.sh on iacdipl-7
     ├── file_size_number.yml      # Daily: runs run_file_size_number.sh on iacdipl-7
+    ├── dry_run.yml               # On PR: dry-runs both pipelines and checks the outputs
     └── publish_datasets.yml      # On push: copies datasets.json to iacdipl-7
 ```
 
