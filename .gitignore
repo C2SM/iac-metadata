@@ -1,2 +1,4 @@
 __pycache__/
 src/file_index_text/
+src/file_tree_*
+src/meta_*.json
