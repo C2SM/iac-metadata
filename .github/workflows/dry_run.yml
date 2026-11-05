@@ -9,17 +9,18 @@ name: Dry run
 # If a PR only changes datasets.yaml/datasets.json, only the added or
 # modified datasets are run (see .github/scripts/select_datasets.py);
 # otherwise all of them, which takes roughly as long as the nightly runs
-# (up to ~2 h). A new push to the PR cancels the run in progress.
+# (up to ~2 h). PRs that touch neither src/ nor this workflow skip the dry
+# run. A new push to the PR cancels the run in progress.
 #
 # Uses the same ssh setup and secrets as file_index.yml. Secrets are not
 # available to pull requests from forks, so the job is skipped for those.
+#
+# The workflow runs for every PR (no paths filter) and reports one summary
+# check, "Dry run", so it can be a required status check: a filtered
+# workflow or a skipped matrix job would leave a required check pending.
 
 on:
   pull_request:
-    paths:
-      - src/**
-      - .github/workflows/dry_run.yml
-      - .github/scripts/select_datasets.py
 
 permissions:
   contents: read
@@ -124,3 +125,16 @@ jobs:
       - name: Remove remote workspace
         if: always() && steps.workdir.outputs.path != ''
         run: ssh iacdipl7 "rm -rf '${{ steps.workdir.outputs.path }}'"
+
+  result:
+    name: Dry run
+    needs: [select, dry-run]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if a dry run failed or was cancelled
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Results: $RESULTS"
+          [[ ! "$RESULTS" =~ failure|cancelled ]]

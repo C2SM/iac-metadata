@@ -25,7 +25,7 @@ there's nothing left to keep in sync between the two repos.
 | [`file_index.yml`](.github/workflows/file_index.yml) | Daily, 02:00 UTC | `file_tree.py` for every dataset -> `file_tree_*.json` |
 | [`file_size_number.yml`](.github/workflows/file_size_number.yml) | Daily, 03:00 UTC | `file_size_number.py` for every dataset -> `meta_*.json` |
 | [`publish_datasets.yml`](.github/workflows/publish_datasets.yml) | Push to `main` touching `src/datasets.json` | Copies `datasets.json` straight to the file index - no script, no venv |
-| [`dry_run.yml`](.github/workflows/dry_run.yml) | Pull request touching `src/` | Both pipelines with `--dry-run` on iacdipl-7 - see [Dry run](#dry-run) |
+| [`dry_run.yml`](.github/workflows/dry_run.yml) | Every pull request (skipped unless `src/` changes) | Both pipelines with `--dry-run` on iacdipl-7 - see [Dry run](#dry-run) |
 | [`checks.yml`](.github/workflows/checks.yml) | Pull request, push to `main` | Validates `datasets.yaml`/`datasets.json`, unit tests, `shellcheck` - see [Tests](#tests) |
 
 The first three also accept `workflow_dispatch` for a manual run:
@@ -74,6 +74,13 @@ the next nightly run. If the PR only changes `datasets.yaml` or
 all of them, which takes about as long as the nightly runs (up to ~2 h).
 A new push to the PR cancels the run in progress. Pull requests from
 forks are skipped, since they have no access to the ssh secrets.
+
+## Required checks
+
+Pull requests into `main` can only be merged once the status checks
+`checks` (from `checks.yml`) and `Dry run` (from `dry_run.yml`) have
+passed. `Dry run` summarizes both pipeline runs and also passes when the
+dry run is skipped, e.g. for a PR that does not touch `src/`.
 
 ## Tests
 
