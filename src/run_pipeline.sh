@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Shared by run_file_index.sh and run_file_size_number.sh - not executable
 # on its own, meant to be `source`d for its functions: setup_venv() creates
 # a venv and installs this repo's requirements.txt, run_datasets() loops
