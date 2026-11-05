@@ -343,11 +343,31 @@ cmip7:
     - GCM
     - ensemble_member
     - grid
-  pattern: 
+  pattern:
     file: "*.nc"
   blacklist:
     - work
   historical_before: 2023
+
+cordex-cmip6:
+  directory_paths:
+    - /c2sm-data/cordex-cmip6/EUR-12/
+  labels:
+    - institution
+    - GCM
+    - scenario
+    - ensemble_member
+    - RCM
+    - realization
+    - temporal_resolution
+    - variable
+    - version_date
+  pattern:
+    file: "*.nc"
+  blacklist:
+    - work
+  historical_before: 2015
+
 
 cordex:
   directory_paths:
