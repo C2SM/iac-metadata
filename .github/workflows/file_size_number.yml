@@ -14,11 +14,20 @@ name: File size number
 # C2SM/zephyr-request's process_request.yml, reusing the same iacdipl-7
 # account (l_c2sm) that the Jenkins "atmos"-labeled agent ran as.
 #
+# Also runs on every push to main that touches src/, so merged changes are
+# published right away. If the push only changes datasets.yaml or
+# datasets.json, only the added or modified datasets are run (see
+# .github/scripts/select_datasets.py).
+#
 # Required repository secrets (Settings -> Secrets and variables -> Actions):
 #   FOG_SSH_KEY      - private key for ti16102 on fog.ethz.ch
 #   IACDIPL7_SSH_KEY - private key for l_c2sm on iacdipl-7.ethz.ch
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - src/**
   schedule:
     - cron: '0 3 * * *'
   workflow_dispatch:
@@ -31,8 +40,50 @@ on:
 permissions:
   contents: read
 
+# Push-triggered and nightly runs write the same files, so they wait for
+# each other instead of running at the same time.
+concurrency:
+  group: file_size_number
+  cancel-in-progress: false
+
 jobs:
+  select:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.select.outputs.run }}
+      datasets: ${{ steps.select.outputs.datasets }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Python
+        if: github.event_name == 'push'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Pushes to main are squash merges, so select_datasets.py compares the
+      # pushed commit with its parent. Other runs use the dataset input.
+      - name: Select datasets
+        id: select
+        env:
+          DATASET: ${{ inputs.dataset }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            pip install --quiet PyYAML
+            python .github/scripts/select_datasets.py | tee -a "$GITHUB_OUTPUT"
+          elif [ -n "$DATASET" ] && ! grep -qxF "$DATASET:" src/datasets.yaml; then
+            echo "::error::Unknown dataset '$DATASET', see the top-level keys in src/datasets.yaml"
+            exit 1
+          else
+            printf 'run=true\ndatasets=%s\n' "$DATASET" | tee -a "$GITHUB_OUTPUT"
+          fi
+
   file-size-number:
+    needs: select
+    if: needs.select.outputs.run == 'true'
     runs-on: ubuntu-latest
     # Datasets run sequentially in one ssh session (see
     # src/run_file_size_number.sh, which also walks every file to size it),
@@ -41,15 +92,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Validate dataset input
-        env:
-          DATASET: ${{ inputs.dataset }}
-        run: |
-          if [ -n "$DATASET" ] && ! grep -qxF "$DATASET:" src/datasets.yaml; then
-            echo "::error::Unknown dataset '$DATASET', see the top-level keys in src/datasets.yaml"
-            exit 1
-          fi
 
       - name: Configure ssh
         env:
@@ -96,7 +138,7 @@ jobs:
 
       - name: Run file size number pipeline on iacdipl-7
         env:
-          DATASET: ${{ inputs.dataset }}
+          DATASET: ${{ needs.select.outputs.datasets }}
         run: |
           ssh iacdipl7 bash -s << REMOTE
           cd '${{ steps.workdir.outputs.path }}'

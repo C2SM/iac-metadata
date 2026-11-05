@@ -22,8 +22,8 @@ there's nothing left to keep in sync between the two repos.
 
 | Workflow | Trigger | Runs |
 |---|---|---|
-| [`file_index.yml`](.github/workflows/file_index.yml) | Daily, 02:00 UTC | `file_tree.py` for every dataset -> `file_tree_*.json` |
-| [`file_size_number.yml`](.github/workflows/file_size_number.yml) | Daily, 03:00 UTC | `file_size_number.py` for every dataset -> `meta_*.json` |
+| [`file_index.yml`](.github/workflows/file_index.yml) | Daily, 02:00 UTC; push to `main` touching `src/` | `file_tree.py` for every dataset -> `file_tree_*.json` |
+| [`file_size_number.yml`](.github/workflows/file_size_number.yml) | Daily, 03:00 UTC; push to `main` touching `src/` | `file_size_number.py` for every dataset -> `meta_*.json` |
 | [`publish_datasets.yml`](.github/workflows/publish_datasets.yml) | Push to `main` touching `src/datasets.json` | Copies `datasets.json` straight to the file index - no script, no venv |
 | [`dry_run.yml`](.github/workflows/dry_run.yml) | Every pull request (skipped unless `src/` changes) | Both pipelines with `--dry-run` on iacdipl-7 - see [Dry run](#dry-run) |
 | [`checks.yml`](.github/workflows/checks.yml) | Pull request, push to `main` | Validates `datasets.yaml`/`datasets.json`, unit tests, `shellcheck` - see [Tests](#tests) |
@@ -45,6 +45,15 @@ gh workflow run file_index.yml --repo C2SM/iac-metadata -f dataset=cmip7
 gh workflow run file_size_number.yml --repo C2SM/iac-metadata -f dataset=cmip7
 ```
 
+On a push to `main` (i.e. a merged pull request) that touches `src/`, both
+workflows publish the changes right away instead of waiting for the next
+nightly run. If the push only changes `datasets.yaml` or `datasets.json`,
+only the added or modified datasets are run (see
+[`select_datasets.py`](.github/scripts/select_datasets.py)); otherwise all
+of them. Runs of the same workflow wait for each other, so a
+push-triggered run and a nightly run never write the same files at the
+same time.
+
 ### Dry run
 
 To test changes without publishing anything, run the scripts by hand on a
@@ -64,8 +73,8 @@ Leaving out the dataset names processes every dataset in `datasets.yaml`.
 
 Both scripts exit with an error and save nothing if a dataset yields no
 data at all, which usually points to a wrong path, label or pattern in
-`datasets.yaml`. In the nightly runs, the file index then keeps its last
-valid version of that dataset and the workflow fails.
+`datasets.yaml`. In the scheduled and push-triggered runs, the file index
+then keeps its last valid version of that dataset and the workflow fails.
 
 [`dry_run.yml`](.github/workflows/dry_run.yml) runs this on every pull
 request that touches `src/`, so problems show up on the PR instead of in
@@ -233,10 +242,10 @@ if that's already in place.
 ├── pytest.ini
 └── .github/
     ├── scripts/
-    │   └── select_datasets.py    # Picks the datasets dry_run.yml runs for a PR
+    │   └── select_datasets.py    # Picks the datasets to run for a PR or a push to main
     └── workflows/
-        ├── file_index.yml        # Daily: runs run_file_index.sh on iacdipl-7
-        ├── file_size_number.yml  # Daily: runs run_file_size_number.sh on iacdipl-7
+        ├── file_index.yml        # Daily and on push: runs run_file_index.sh on iacdipl-7
+        ├── file_size_number.yml  # Daily and on push: runs run_file_size_number.sh on iacdipl-7
         ├── dry_run.yml           # On PR: dry-runs both pipelines on iacdipl-7
         ├── checks.yml            # On PR: config validation, unit tests, shellcheck
         └── publish_datasets.yml  # On push: copies datasets.json to iacdipl-7

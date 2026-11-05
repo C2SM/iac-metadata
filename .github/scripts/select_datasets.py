@@ -1,8 +1,10 @@
 """
-Select the datasets to dry-run for a pull request and print them as
-GitHub step outputs: `run` (true/false) and `datasets` (space-separated,
-empty for all). Compares the checked-out merge commit with its first
-parent, the base branch.
+Select the datasets to run for a pull request (dry_run.yml) or a push to
+main (file_index.yml, file_size_number.yml) and print them as GitHub step
+outputs: `run` (true/false) and `datasets` (space-separated, empty for
+all). Compares the checked-out commit with its first parent: the base
+branch for a pull request's merge commit, the previous main for a squash
+merge.
 
 If only src/datasets.yaml or src/datasets.json changed, just the added or
 modified datasets are selected. Any other change to the pipeline selects
