@@ -69,7 +69,16 @@ def remove_late_historical(dates, dataset):
 
     for date_range in dates:
         if '-' in date_range:
-            start, end = date_range.split("-")
+            try:
+                start, end = date_range.split("-")
+            except ValueError:
+                logging.warning(
+                    f"Invalid date range format: {date_range}"
+                )
+                print(
+                    f"WARNING: Invalid date range format: {date_range}"
+                )
+                continue
             if int(end[:4]) < dataset['historical_before']:
                 result.append(date_range)
             else:
@@ -152,7 +161,7 @@ def check_completeness(file_list, dataset, path):
     file_parts = [file.split('_') for file in file_list]
 
     # Handle files with "fx" in the name
-    if any('fx' in parts for parts in file_parts):
+    if 'fx' in dates or any('fx' in parts for parts in file_parts):
         # 'fx' files do not have time information -> return an empty dict
         return {}
 
@@ -207,6 +216,10 @@ def check_completeness(file_list, dataset, path):
         grouped_dates = {}
         for date_str in dates:
             date_format = detect_format(date_str.split('-')[0])
+            if date_format is None:
+                logging.warning(f"Skipping unrecognized date '{date_str}' in {path}")
+                print(f"WARNING: Skipping unrecognized date '{date_str}' in {path}")
+                continue
             if date_format not in grouped_dates:
                 grouped_dates[date_format] = []
             grouped_dates[date_format].append(date_str)
@@ -259,6 +272,52 @@ def build_flat_leaf_tree(file_list, labels, label_index):
     return tree
 
 
+def build_named_leaf_tree(file_list, dataset, label_index, directory):
+    """
+    Builds a nested dictionary from files whose names start with the tokens
+    listed in `pattern.filename_labels` and end with a date range (e.g.
+    CORDEX-FPSCONV). Files are grouped by the labels below `label_index`, and
+    each group gets its own date range via `check_completeness`.
+
+    Args:
+        file_list (list): File names (no directory component).
+        dataset: A dictionary containing the dataset information.
+        label_index (int): Index of the label represented by `directory`.
+        directory (str): Directory holding the files.
+
+    Returns:
+        dict: Nested dictionary representing the remaining labels.
+    """
+    filename_labels = dataset['pattern']['filename_labels']
+    remaining_labels = dataset['labels'][label_index + 1:]
+    groups = {}
+    skipped = []
+    for filename in file_list:
+        tokens = filename.rsplit('.', 1)[0].split('_')
+        if len(tokens) <= len(filename_labels):
+            skipped.append(filename)
+            continue
+        fields = dict(zip(filename_labels, tokens))
+        key = tuple(fields[label] for label in remaining_labels)
+        groups.setdefault(key, []).append(filename)
+
+    if skipped:
+        logging.warning(
+            f"Skipping {len(skipped)} file(s) with unexpected name shape in {directory}, e.g. {skipped[0]}"
+        )
+        print(
+            f"WARNING: Skipping {len(skipped)} file(s) with unexpected name shape in {directory}, e.g. {skipped[0]}"
+        )
+
+    tree = {}
+    for key, files in sorted(groups.items()):
+        node = tree
+        for token in key[:-1]:
+            node = node.setdefault(token, {})
+        node[key[-1]] = check_completeness(files, dataset, directory)
+    return tree
+
+
 def build_file_tree(directory, dataset, label_index, tree=None):
     """
     Recursively builds a nested dictionary representing the file tree starting from `directory`.
@@ -291,7 +350,7 @@ def build_file_tree(directory, dataset, label_index, tree=None):
         )
         print(f"Entering directory {directory}")
 
-    if dataset['labels'][label_index] == dataset['labels'][-1]:
+    if label_index == len(dataset['labels']) - 1:
         path = directory
         # Return a file list
         file_list = sorted(glob.glob(f"{path}/{dataset['pattern']['file']}"))
@@ -321,7 +380,10 @@ def build_file_tree(directory, dataset, label_index, tree=None):
             file_list = sorted(
                 os.path.basename(f) for f in glob.glob(
                     f"{directory}/{dataset['pattern']['file']}"))
-            if file_list:
+            if file_list and 'filename_labels' in dataset['pattern']:
+                tree = build_named_leaf_tree(file_list, dataset, label_index,
+                                             directory)
+            elif file_list:
                 tree = build_flat_leaf_tree(file_list, dataset['labels'],
                                            label_index)
             else:
@@ -353,27 +415,26 @@ def build_file_tree(directory, dataset, label_index, tree=None):
     return tree
 
 
-def save_file_tree_to_json(file_tree, output_file, indent=None, dry_run=False):
+def save_file_tree_to_json(file_tree, output_file, indent=None, upload=False):
     """
     Save the generated file tree dictionary to a JSON file.
     Args:
         file_tree (dict): The file tree to save.
         output_file (str): The path to the JSON file where the file tree will be saved.
         indent (int, optional): The number of spaces to use for indentation.
-        dry_run (bool, optional): If True, do not copy the file to FILE_INDEX_DIR.
+        upload (bool, optional): Also copy the file to FILE_INDEX_DIR.
     """
     with open(output_file, 'w') as f:
         json.dump(file_tree, f, indent=indent)
     logging.info(f"File tree successfully saved to {output_file}")
 
-    if dry_run:
-        logging.info(f"Dry run: not copying {output_file} to {FILE_INDEX_DIR}")
-        return
-    shutil.copy2(output_file, FILE_INDEX_DIR)
-    logging.info(f"File {output_file} copied to {FILE_INDEX_DIR}")
+    if upload:
+        shutil.copy2(output_file, FILE_INDEX_DIR)
+        logging.info(f"File {output_file} copied to {FILE_INDEX_DIR}")
 
 
-def main(dataset, output_path, dry_run=False):
+def main(dataset, output_path, upload=False):
+    os.makedirs(output_path, exist_ok=True)
     # Setup basic configuration for logging
     logging.basicConfig(filename=f'{output_path}/file_tree_{dataset}.log',
                         level=logging.INFO,
@@ -407,7 +468,7 @@ def main(dataset, output_path, dry_run=False):
             # Apply labels starting with the first label for each sub-directory, skipping 'work'
             for item in sorted(os.listdir(path)):
                 item_path = os.path.join(path, item)
-                if any(blacklisted_item in item.lower()
+                if any(blacklisted_item.lower() in item.lower()
                        for blacklisted_item in blacklist):
                     logging.info(
                         f"Skipping directory '{item}' as it contains a blacklisted item"
@@ -426,7 +487,7 @@ def main(dataset, output_path, dry_run=False):
             # Apply labels starting with the first label for each sub-directory, skipping 'work'
             for item in sorted(os.listdir(path)):
                 item_path = os.path.join(path, item)
-                if any(blacklisted_item in item.lower()
+                if any(blacklisted_item.lower() in item.lower()
                        for blacklisted_item in blacklist):
                     logging.info(
                         f"Skipping directory '{item}' as it contains a blacklisted item"
@@ -450,14 +511,14 @@ def main(dataset, output_path, dry_run=False):
     output_filename = f'file_tree_{dataset}.json'
     output_json_path = os.path.join(output_path, output_filename)
     save_file_tree_to_json(file_tree_root, output_json_path, indent=2,
-                           dry_run=dry_run)
+                           upload=upload)
     logging.info(
         f"File tree JSON file (human-readable) saved to {output_json_path}")
 
     # Save the file trees to a JSON file without indentation
     output_filename = f'file_tree_{dataset}_noindent.json'
     output_json_path = os.path.join(output_path, output_filename)
-    save_file_tree_to_json(file_tree_root, output_json_path, dry_run=dry_run)
+    save_file_tree_to_json(file_tree_root, output_json_path, upload=upload)
     logging.info(
         f"File tree JSON file (without indentation) saved to {output_json_path}"
     )
@@ -479,8 +540,8 @@ if __name__ == "__main__":
                         "--output",
                         help="Output path for the JSON files",
                         default=".")
-    parser.add_argument("--dry-run",
+    parser.add_argument("--upload",
                         action="store_true",
-                        help="Write the JSON files locally without publishing them")
+                        help=f"Also copy the JSON files to {FILE_INDEX_DIR}")
     args = parser.parse_args()
-    main(args.dataset, args.output, args.dry_run)
+    main(args.dataset, args.output, args.upload)

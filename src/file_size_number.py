@@ -44,27 +44,26 @@ def calculate_directory_metrics(directory_path):
     return readable_total_size, file_count
 
 
-def save_json_file(meta_dict, output_file, indent=None, dry_run=False):
+def save_json_file(meta_dict, output_file, indent=None, upload=False):
     """
     Save the generated file tree dictionary to a JSON file.
     Args:
         meta_dict (dict): The dataset meta information to save.
         output_file (str): The path where the JSON file will be saved.
         indent (int, optional): The number of spaces to use for indentation.
-        dry_run (bool, optional): If True, do not copy the file to FILE_INDEX_DIR.
+        upload (bool, optional): Also copy the file to FILE_INDEX_DIR.
     """
     with open(output_file, 'w') as f:
         json.dump(meta_dict, f, indent=indent)
     logging.info(f"File tree successfully saved to {output_file}")
 
-    if dry_run:
-        logging.info(f"Dry run: not copying {output_file} to {FILE_INDEX_DIR}")
-        return
-    shutil.copy2(output_file, FILE_INDEX_DIR)
-    logging.info(f"File {output_file} copied to {FILE_INDEX_DIR}")
+    if upload:
+        shutil.copy2(output_file, FILE_INDEX_DIR)
+        logging.info(f"File {output_file} copied to {FILE_INDEX_DIR}")
 
 
-def main(dataset_name, output_path=False, dry_run=False):
+def main(dataset_name, output_path=False, upload=False):
+    os.makedirs(output_path, exist_ok=True)
     with open('datasets.yaml', 'r') as file:
         datasets = yaml.safe_load(file)
 
@@ -100,7 +99,7 @@ def main(dataset_name, output_path=False, dry_run=False):
 
     output_filename = f'meta_{dataset_name}.json'
     output_json_path = os.path.join(output_path, output_filename)
-    save_json_file(results, output_json_path, indent=4, dry_run=dry_run)
+    save_json_file(results, output_json_path, indent=4, upload=upload)
     logging.info(f"JSON file saved to {output_json_path}")
 
 
@@ -120,8 +119,8 @@ if __name__ == "__main__":
                         "--output",
                         help="Output path for the JSON files",
                         default=".")
-    parser.add_argument("--dry-run",
+    parser.add_argument("--upload",
                         action="store_true",
-                        help="Write the JSON files locally without publishing them")
+                        help=f"Also copy the JSON files to {FILE_INDEX_DIR}")
     args = parser.parse_args()
-    main(args.dataset, args.output, args.dry_run)
+    main(args.dataset, args.output, args.upload)
