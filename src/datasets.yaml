@@ -370,6 +370,26 @@ cordex:
   historical_before: 2015
   map_root: True
 
+cordex-cmip6:
+  directory_paths:
+    - /net/atmos/data/cordex-cmip6/EUR-12
+  labels:
+    - institution
+    - GCM
+    - scenario
+    - ensemble_member
+    - RCM
+    - version_realization
+    - temporal_resolution
+    - variable
+    - version
+  pattern:
+    file: "*.nc"
+  blacklist:
+    - work
+    - IAEVALL06
+  historical_before: 2015
+
 cordex-reklies:
   directory_paths:
     - /net/atmos/data/cordex-reklies/EUR-11/historical
