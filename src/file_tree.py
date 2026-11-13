@@ -262,9 +262,17 @@ def build_flat_leaf_tree(file_list, labels, label_index):
         stem = filename.rsplit('.', 1)[0]
         tokens = stem.split('_')
         if len(tokens) != len(labels):
-            logging.warning(f"Skipping file with unexpected name shape: {filename}")
-            print(f"WARNING: Skipping file with unexpected name shape: {filename}")
-            continue
+            # check if data cmip7-ng, where 0:2 tokens together represent the full variable name, e.g. "pr_tavg-u-hxy-u_glb"
+            if labels[0] == "variable" and tokens[1] in ["tavg-u-hxy-u", "tavg-h2m-hxy-u", "tmax-h2m-hxy-u", "tmin-h2m-hxy-u", "tavg-u-hxy-lnd"]:
+                tokens[0] += "_" + tokens[1]
+                tokens[0] += "_" + tokens[2]
+                tokens.pop(1)
+                tokens.pop(2)
+                assert len(tokens) == len(labels), f"Unexpected number of tokens in filename '{filename}' after merging variable name tokens"
+            else:
+                logging.warning(f"Skipping file with unexpected name shape: {filename}")
+                print(f"WARNING: Skipping file with unexpected name shape: {filename}")
+                continue
         node = tree
         for token in tokens[label_index:-1]:
             node = node.setdefault(token, {})
