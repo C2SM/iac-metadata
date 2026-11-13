@@ -8,7 +8,6 @@
   { "key": "cmip7-ng", "description": "", "name": "CMIP7-ng" },
   { "key": "cerra", "description": "", "name": "CERRA" },
   { "key": "cerra-land", "description": "", "name": "CERRA Land" },
-  { "key": "cordex-cmip6", "description": "", "name": "CORDEX-CMIP6" },
   { "key": "cordex", "description": "", "name": "CORDEX" },
   { "key": "cordex-reklies", "description": "", "name": "CORDEX-ReKLiEs" },
   { "key": "CORDEX-FPSCONV", "description": "", "name": "CORDEX-FPSCONV" }
