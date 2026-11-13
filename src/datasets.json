@@ -10,5 +10,6 @@
   { "key": "cerra-land", "description": "", "name": "CERRA Land" },
   { "key": "cordex", "description": "", "name": "CORDEX" },
   { "key": "cordex-reklies", "description": "", "name": "CORDEX-ReKLiEs" },
+  { "key": "cordex-cmip6", "description": "", "name": "CORDEX-CMIP6" },
   { "key": "CORDEX-FPSCONV", "description": "", "name": "CORDEX-FPSCONV" }
 ]
