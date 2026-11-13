@@ -349,25 +349,21 @@ cmip7:
     - work
   historical_before: 2023
 
-cordex-cmip6:
+cmip7-ng:
   directory_paths:
-    - /c2sm-data/cordex-cmip6/EUR-12/
+    - /net/stratus/c2sm-data/cmip7-Next_Generation/data
   labels:
-    - institution
+    - variable
+    - temporal_resolution
+    - grid
     - GCM
     - scenario
     - ensemble_member
-    - RCM
-    - realization
-    - temporal_resolution
-    - variable
-    - version_date
+    - grid
   pattern:
     file: "*.nc"
   blacklist:
     - work
-  historical_before: 2015
-
 
 cordex:
   directory_paths:

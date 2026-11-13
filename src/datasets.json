@@ -3,13 +3,13 @@
   { "key": "era5-land_cds", "description": "", "name": "ERA5 Land" },
   { "key": "cmip5", "description": "", "name": "CMIP5" },
   { "key": "cmip6", "description": "", "name": "CMIP6" },
-  { "key": "cmip6-ng", "description": "", "name": "CMIP6-ng" },
   { "key": "cmip7", "description": "", "name": "CMIP7" },
+  { "key": "cmip6-ng", "description": "", "name": "CMIP6-ng" },
+  { "key": "cmip7-ng", "description": "", "name": "CMIP7-ng" },
   { "key": "cerra", "description": "", "name": "CERRA" },
   { "key": "cerra-land", "description": "", "name": "CERRA Land" },
   { "key": "cordex-cmip6", "description": "", "name": "CORDEX-CMIP6" },
   { "key": "cordex", "description": "", "name": "CORDEX" },
   { "key": "cordex-reklies", "description": "", "name": "CORDEX-ReKLiEs" },
-  { "key": "cordex-cmip6", "description": "", "name": "CORDEX-CMIP6" },
   { "key": "CORDEX-FPSCONV", "description": "", "name": "CORDEX-FPSCONV" }
 ]
