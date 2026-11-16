@@ -263,7 +263,7 @@ def build_flat_leaf_tree(file_list, labels, label_index):
         tokens = stem.split('_')
         if len(tokens) != len(labels):
             # check if data cmip7-ng, where 0:2 tokens together represent the full variable name, e.g. "pr_tavg-u-hxy-u_glb"
-            if labels[0] == "variable" and tokens[1] in ["tavg-u-hxy-u", "tavg-h2m-hxy-u", "tmax-h2m-hxy-u", "tmin-h2m-hxy-u", "tavg-u-hxy-lnd"]:
+            if len(tokens) == len(labels) + 2 and labels[0] == "variable" and tokens[1] in ["tavg-u-hxy-u", "tavg-h2m-hxy-u", "tmax-h2m-hxy-u", "tmin-h2m-hxy-u", "tavg-u-hxy-lnd"]:
                 tokens[0] += "_" + tokens[1]
                 tokens[0] += "_" + tokens[2]
                 tokens.pop(1)
