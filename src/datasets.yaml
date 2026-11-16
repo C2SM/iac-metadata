@@ -359,7 +359,7 @@ cmip7-ng:
     - GCM
     - scenario
     - ensemble_member
-    - grid
+    - native_grid
   pattern:
     file: "*.nc"
   blacklist:
