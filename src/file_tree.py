@@ -266,8 +266,7 @@ def build_flat_leaf_tree(file_list, labels, label_index):
             if len(tokens) == len(labels) + 2 and labels[0] == "variable" and tokens[1] in ["tavg-u-hxy-u", "tavg-h2m-hxy-u", "tmax-h2m-hxy-u", "tmin-h2m-hxy-u", "tavg-u-hxy-lnd"]:
                 tokens[0] += "_" + tokens[1]
                 tokens[0] += "_" + tokens[2]
-                tokens.pop(1)
-                tokens.pop(2)
+                del tokens[1:3]
                 assert len(tokens) == len(labels), f"Unexpected number of tokens in filename '{filename}' after merging variable name tokens"
             else:
                 logging.warning(f"Skipping file with unexpected name shape: {filename}")
