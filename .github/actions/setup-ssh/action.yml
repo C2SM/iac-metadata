@@ -1,0 +1,58 @@
+name: Set up ssh
+description: >
+  Configures the ssh aliases "bastion" and "target" (reached through the
+  bastion) from repository secrets and variables, see README "Setup".
+
+inputs:
+  bastion-host:
+    required: true
+  bastion-user:
+    required: true
+  bastion-key:
+    required: true
+  target-host:
+    required: true
+  target-user:
+    required: true
+  target-key:
+    required: true
+  known-hosts:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        BASTION_HOST: ${{ inputs.bastion-host }}
+        BASTION_USER: ${{ inputs.bastion-user }}
+        BASTION_KEY: ${{ inputs.bastion-key }}
+        TARGET_HOST: ${{ inputs.target-host }}
+        TARGET_USER: ${{ inputs.target-user }}
+        TARGET_KEY: ${{ inputs.target-key }}
+        KNOWN_HOSTS: ${{ inputs.known-hosts }}
+      run: |
+        for v in BASTION_HOST BASTION_USER BASTION_KEY TARGET_HOST TARGET_USER TARGET_KEY KNOWN_HOSTS; do
+          [ -n "${!v}" ] || { echo "::error::$v is empty, see README Setup"; exit 1; }
+        done
+
+        mkdir -p ~/.ssh
+        echo "$BASTION_KEY" > ~/.ssh/id_bastion
+        echo "$TARGET_KEY" > ~/.ssh/id_target
+        echo "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+        cat > ~/.ssh/config << EOF
+        Host bastion
+          Hostname $BASTION_HOST
+          User $BASTION_USER
+          IdentityFile ~/.ssh/id_bastion
+          IdentitiesOnly yes
+        Host target
+          Hostname $TARGET_HOST
+          User $TARGET_USER
+          IdentityFile ~/.ssh/id_target
+          IdentitiesOnly yes
+          ProxyJump bastion
+        EOF
+
+        chmod 600 ~/.ssh/config ~/.ssh/known_hosts ~/.ssh/id_bastion ~/.ssh/id_target
