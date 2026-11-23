@@ -7,21 +7,19 @@ name: File size number
 # https://data.iac.ethz.ch/zephyr/file_index/. The frontend reads these
 # JSONs to show dataset sizes and file counts.
 #
-# GitHub-hosted runners can't reach iacdipl-7.ethz.ch directly (ETH's
-# firewall drops non-ETH-network SSH), so the workflow proxies through
-# fog.ethz.ch, uploads src/ over rsync, and runs
-# src/run_file_size_number.sh on iacdipl-7 - same ssh pattern as
-# C2SM/zephyr-request's process_request.yml, reusing the same iacdipl-7
-# account (l_c2sm) that the Jenkins "atmos"-labeled agent ran as.
+# GitHub-hosted runners can't reach the target host directly (ETH's
+# firewall drops non-ETH-network SSH), so the workflow proxies through a
+# bastion host, uploads src/ over rsync, and runs
+# src/run_file_size_number.sh on the target host - same ssh pattern as
+# C2SM/zephyr-request's process_request.yml, reusing the account that
+# the Jenkins "atmos"-labeled agent ran as.
 #
 # Also runs on every push to main that touches src/, so merged changes are
 # published right away. If the push only changes datasets.yaml or
 # datasets.json, only the added or modified datasets are run (see
 # .github/scripts/select_datasets.py).
 #
-# Required repository secrets (Settings -> Secrets and variables -> Actions):
-#   FOG_SSH_KEY      - private key for ti16102 on fog.ethz.ch
-#   IACDIPL7_SSH_KEY - private key for l_c2sm on iacdipl-7.ethz.ch
+# Requires the ssh secrets and variables listed in README "Setup".
 
 on:
   push:
@@ -94,57 +92,34 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure ssh
-        env:
-          ID_FOG: ${{ secrets.FOG_SSH_KEY }}
-          ID_TARGET: ${{ secrets.IACDIPL7_SSH_KEY }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "${ID_FOG}" > ~/.ssh/id_ed25519_fog
-          echo "${ID_TARGET}" > ~/.ssh/id_ed25519_iacdipl7
-
-          cat > ~/.ssh/config << 'EOF'
-          Host fog
-            Hostname fog.ethz.ch
-            User ti16102
-            IdentityFile ~/.ssh/id_ed25519_fog
-            IdentitiesOnly yes
-          Host iacdipl7
-            Hostname iacdipl-7.ethz.ch
-            User l_c2sm
-            IdentityFile ~/.ssh/id_ed25519_iacdipl7
-            IdentitiesOnly yes
-            ProxyJump fog
-          EOF
-
-          cat > ~/.ssh/known_hosts << 'EOF'
-          fog.ethz.ch ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAIEA1LZFUYJ7qouXhKEf6YpH+QtJlX0cr8Jf390Gkam8ydfy0C35sOZYaHQCxwDo5ghBy6rRlUyJDPRDDy4VZEL25FXsR3U1k6/kKRoGbkhY4lS9i+kNfaveBj1S4Ih8Ykw4q3bauck7dTBrrAu6VGwKtdpU6Lkxh3Wizjilt0wciB8=
-          fog.ethz.ch ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBI3rw1g+UMRDdjem5htVjJHSPvSmvHKQ9bHiqPzDi9jtkX2dqyKEt8sM2SXhLwcDeawfVODH2okO+Cc28MS7fFo=
-          fog.ethz.ch ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMMGddQwl0gXqcPeL4FFjiyXBrfPXdfDOdX5f+gM+o1F
-          iacdipl-7.ethz.ch ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIZgUr0MuFxJRvEqG/iEZs1QYoG2VvjCPLoRnfW3Ljbv
-          iacdipl-7.ethz.ch ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCto+34JmZ3CRV8BhwKF8r//RDIjGrTNXExinraG69ds9poA5+PQYu6V1Ew29mdFdSU4CmJpoh4s/S0IW3O8dw4NYnKtLVnhhnR9fB4UWG98qX1MqxsQ7EOOq67kT+Ap1HY2lDXHGMgDsVIEuQp68SIHyzxKtvDtr6seRypOE0t8DkL78NZMyvVnFE8Yf/lK97ZTsKOUer90Iq36Inz2+GateU9CV8hnjfJTwIVJ4tRX7WEY0U2MMY88y+fdQNXsIjFHAal7wjG3M5x3TgbviqNmeECLR1tZnHWMW2B6lJ2GtpsvI0wU4hc0WI4VZokpWhAE+mwqsjQkXF1QlWyFLPJ+EKxIl8+86iza3YTM+UM3aPtmGeQa2q8IqFQDbV4zjIId6bGzWUiAvMr087YqFMgbDgsSJ9gwALaXgGffeGqWudp4HU1pHtC2RnJy/AoVPLG0q3/p8aXr2FwDpU0k9Nau/bbR/DhMTp/4KKUdMRZqSm/mLVnSXKM2Y2vKqd+xes=
-          iacdipl-7.ethz.ch ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBALrIi4NyEffUk2qoJq7tizx6dGqa2YZM007ilq0fOAufd7zpY7RuvVOMNF6Zd93CuOcnfegeRyqMIOG6CV7dYc=
-          EOF
-
-          chmod 600 ~/.ssh/config ~/.ssh/known_hosts ~/.ssh/id_ed25519_fog ~/.ssh/id_ed25519_iacdipl7
+        uses: ./.github/actions/setup-ssh
+        with:
+          bastion-host: ${{ vars.SSH_BASTION_HOST }}
+          bastion-user: ${{ vars.SSH_BASTION_USER }}
+          bastion-key: ${{ secrets.FOG_SSH_KEY }}
+          target-host: ${{ vars.SSH_TARGET_HOST }}
+          target-user: ${{ vars.SSH_TARGET_USER }}
+          target-key: ${{ secrets.IACDIPL7_SSH_KEY }}
+          known-hosts: ${{ vars.SSH_KNOWN_HOSTS }}
 
       - name: Create remote workspace
         id: workdir
         run: |
-          remote_dir=$(ssh iacdipl7 'mkdir -p ~/iac-metadata-runs && mktemp -d ~/iac-metadata-runs/file-size-number-XXXXXXXX')
+          remote_dir=$(ssh target 'mkdir -p ~/iac-metadata-runs && mktemp -d ~/iac-metadata-runs/file-size-number-XXXXXXXX')
           echo "path=$remote_dir" >> "$GITHUB_OUTPUT"
 
-      - name: Upload scripts to iacdipl-7
-        run: rsync -avh src/ "iacdipl7:${{ steps.workdir.outputs.path }}/"
+      - name: Upload scripts to the target host
+        run: rsync -avh src/ "target:${{ steps.workdir.outputs.path }}/"
 
-      - name: Run file size number pipeline on iacdipl-7
+      - name: Run file size number pipeline on the target host
         env:
           DATASET: ${{ needs.select.outputs.datasets }}
         run: |
-          ssh iacdipl7 bash -s << REMOTE
+          ssh target bash -s << REMOTE
           cd '${{ steps.workdir.outputs.path }}'
           bash run_file_size_number.sh $DATASET
           REMOTE
 
       - name: Remove remote workspace
         if: always()
-        run: ssh iacdipl7 "rm -rf '${{ steps.workdir.outputs.path }}'"
+        run: ssh target "rm -rf '${{ steps.workdir.outputs.path }}'"
