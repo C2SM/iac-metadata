@@ -1,6 +1,6 @@
 name: Checks
 
-# Fast checks that need no access to iacdipl-7: validates
+# Fast checks that need no access to the target host: validates
 # src/datasets.yaml and src/datasets.json, runs the unit tests in tests/
 # and lints the shell scripts. See dry_run.yml for the slow run against
 # the real data.
