@@ -8,7 +8,8 @@
 [![License](https://img.shields.io/github/license/C2SM/iac-metadata)](LICENSE)
 
 Generates the dataset metadata behind the dataset browser of
-[zephyr-frontend](https://github.com/C2SM/zephyr-frontend). For every
+[zephyr-frontend](https://github.com/C2SM/zephyr-frontend) and the dataset
+pages of the [C2SM landing page](https://c2sm.github.io/). For every
 dataset in [`src/datasets.yaml`](src/datasets.yaml), scheduled GitHub
 Actions workflows scan the data on the IAC servers and publish JSON files at
 <https://data.iac.ethz.ch/zephyr/file_index/>.
@@ -28,6 +29,7 @@ flowchart LR
     FS -->|meta_*.json| IDX
     PD -->|datasets.json| IDX
     IDX --> FE[zephyr-frontend]
+    IDX --> LP[c2sm.github.io]
 ```
 
 The workflows in [`.github/workflows/`](.github/workflows/) connect to the
@@ -73,6 +75,8 @@ Pull requests need the `checks` and `Dry run` status checks to pass.
   interface that reads the published JSON files
 - [C2SM/zephyr-request](https://github.com/C2SM/zephyr-request): request
   processing through GitHub issues
+- [C2SM/c2sm.github.io](https://github.com/C2SM/c2sm.github.io): landing
+  page that shows the variables, size and number of files of each dataset
 
 ## License
 
