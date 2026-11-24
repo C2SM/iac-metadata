@@ -23,7 +23,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Skipped if the release was already written by hand, so cutting one
       # in the UI first and then pushing the tag still works.
