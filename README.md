@@ -22,8 +22,8 @@ there's nothing left to keep in sync between the two repos.
 
 | Workflow | Trigger | Runs |
 |---|---|---|
-| [`file_index.yml`](.github/workflows/file_index.yml) | Daily, 02:00 UTC; push to `main` touching `src/` | `file_tree.py` for every dataset -> `file_tree_*.json` |
-| [`file_size_number.yml`](.github/workflows/file_size_number.yml) | Daily, 03:00 UTC; push to `main` touching `src/` | `file_size_number.py` for every dataset -> `meta_*.json` |
+| [`file_index.yml`](.github/workflows/file_index.yml) | Daily, 02:00 UTC; push to `main` touching `datasets.yaml`/`datasets.json` | `file_tree.py` for every dataset -> `file_tree_*.json` |
+| [`file_size_number.yml`](.github/workflows/file_size_number.yml) | Daily, 03:00 UTC; push to `main` touching `datasets.yaml`/`datasets.json` | `file_size_number.py` for every dataset -> `meta_*.json` |
 | [`publish_datasets.yml`](.github/workflows/publish_datasets.yml) | Push to `main` touching `src/datasets.json` | Copies `datasets.json` straight to the file index - no script, no venv |
 | [`dry_run.yml`](.github/workflows/dry_run.yml) | Every pull request (skipped unless `src/` changes) | Both pipelines with `--dry-run` on the target host - see [Dry run](#dry-run) |
 | [`checks.yml`](.github/workflows/checks.yml) | Pull request, push to `main` | Validates `datasets.yaml`/`datasets.json`, unit tests, `shellcheck` - see [Tests](#tests) |
@@ -45,12 +45,13 @@ gh workflow run file_index.yml --repo C2SM/iac-metadata -f dataset=cmip7
 gh workflow run file_size_number.yml --repo C2SM/iac-metadata -f dataset=cmip7
 ```
 
-On a push to `main` (i.e. a merged pull request) that touches `src/`, both
-workflows publish the changes right away instead of waiting for the next
-nightly run. If the push only changes `datasets.yaml` or `datasets.json`,
-only the added or modified datasets are run (see
-[`select_datasets.py`](.github/scripts/select_datasets.py)); otherwise all
-of them. Runs of the same workflow wait for each other, so a
+On a push to `main` (i.e. a merged pull request) that changes
+`datasets.yaml` or `datasets.json`, both workflows run the added or
+modified datasets right away instead of waiting for the next nightly run
+(see [`select_datasets.py`](.github/scripts/select_datasets.py)). Other
+changes to `src/` are published by the next nightly run, since a daytime
+run over all datasets can exceed the 5 h job timeout. Runs of the same
+workflow wait for each other, so a
 push-triggered run and a nightly run never write the same files at the
 same time.
 

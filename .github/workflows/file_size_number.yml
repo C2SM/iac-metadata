@@ -14,10 +14,10 @@ name: File size number
 # C2SM/zephyr-request's process_request.yml, reusing the account that
 # the Jenkins "atmos"-labeled agent ran as.
 #
-# Also runs on every push to main that touches src/, so merged changes are
-# published right away. If the push only changes datasets.yaml or
-# datasets.json, only the added or modified datasets are run (see
-# .github/scripts/select_datasets.py).
+# Also runs on every push to main that changes datasets.yaml or
+# datasets.json, for the added or modified datasets only (see
+# .github/scripts/select_datasets.py). Other pipeline changes wait for the
+# nightly run, since a daytime run over all datasets can exceed the timeout.
 #
 # Requires the ssh secrets and variables listed in README "Setup".
 
@@ -25,7 +25,8 @@ on:
   push:
     branches: [main]
     paths:
-      - src/**
+      - src/datasets.yaml
+      - src/datasets.json
   schedule:
     - cron: '0 3 * * *'
   workflow_dispatch:
@@ -71,7 +72,7 @@ jobs:
         run: |
           if [ "$GITHUB_EVENT_NAME" = push ]; then
             pip install --quiet PyYAML
-            python .github/scripts/select_datasets.py | tee -a "$GITHUB_OUTPUT"
+            python .github/scripts/select_datasets.py --config-only | tee -a "$GITHUB_OUTPUT"
           elif [ -n "$DATASET" ] && ! grep -qxF "$DATASET:" src/datasets.yaml; then
             echo "::error::Unknown dataset '$DATASET', see the top-level keys in src/datasets.yaml"
             exit 1

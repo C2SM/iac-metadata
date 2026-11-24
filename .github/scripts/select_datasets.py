@@ -8,9 +8,11 @@ merge.
 
 If only src/datasets.yaml or src/datasets.json changed, just the added or
 modified datasets are selected. Any other change to the pipeline selects
-all datasets.
+all datasets, unless --config-only is given: then other changes are
+ignored, and the nightly runs pick them up instead.
 """
 import subprocess
+import sys
 
 import yaml
 
@@ -26,7 +28,8 @@ def git(*args):
 
 changed = git('diff', '--name-only', 'HEAD^1', 'HEAD').split()
 
-if any(f.startswith(PIPELINE_FILES) and f not in CONFIG_FILES for f in changed):
+if '--config-only' not in sys.argv and any(
+        f.startswith(PIPELINE_FILES) and f not in CONFIG_FILES for f in changed):
     run, datasets = True, []
 else:
     old = yaml.safe_load(git('show', 'HEAD^1:src/datasets.yaml'))
