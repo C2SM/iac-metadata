@@ -343,11 +343,27 @@ cmip7:
     - GCM
     - ensemble_member
     - grid
-  pattern: 
+  pattern:
     file: "*.nc"
   blacklist:
     - work
   historical_before: 2023
+
+cmip7-ng:
+  directory_paths:
+    - /net/stratus/c2sm-data/cmip7-Next_Generation/data
+  labels:
+    - variable
+    - temporal_resolution
+    - grid
+    - GCM
+    - scenario
+    - ensemble_member
+    - native_grid
+  pattern:
+    file: "*.nc"
+  blacklist:
+    - work
 
 cordex:
   directory_paths:
